@@ -1,11 +1,9 @@
-import { type CSSProperties, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PortalSwitcher } from './PortalSwitcher'
 
 export const TitleBar = () => {
   const desktop = window.zhiwei?.desktop
   const [maximized, setMaximized] = useState(false)
-  const dragRegion: CSSProperties = { WebkitAppRegion: 'drag' }
-  const noDragRegion: CSSProperties = { WebkitAppRegion: 'no-drag' }
 
   useEffect(() => {
     if (!desktop?.onWindowStateChange) return
@@ -16,8 +14,7 @@ export const TitleBar = () => {
 
   return (
     <header
-      className="flex items-center justify-between border-b border-white/10 bg-[var(--bg-1)] px-4 py-3"
-      style={dragRegion}
+      className="drag-region flex items-center justify-between border-b border-white/10 bg-[var(--bg-1)] px-4 py-3"
     >
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-sm font-bold text-[var(--accent)]">
@@ -28,7 +25,7 @@ export const TitleBar = () => {
           <div className="text-base font-semibold text-white">早产风险监测控制台</div>
         </div>
       </div>
-      <div className="flex items-center gap-3" style={noDragRegion}>
+      <div className="no-drag-region flex items-center gap-3">
         <PortalSwitcher />
         {desktop?.isDesktop ? (
           <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-[var(--bg-2)] p-1">
