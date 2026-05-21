@@ -35,7 +35,7 @@ export const TitleBar = () => {
               onClick={() => desktop.minimize()}
               className="h-7 w-8 rounded-md text-slate-300 transition hover:bg-white/10 hover:text-white"
             >
-              —
+              −
             </button>
             <button
               type="button"
