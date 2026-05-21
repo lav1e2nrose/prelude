@@ -23,6 +23,8 @@ interface MemorialStore {
   memorial: MemorialModeState
   enterMemorialMode: (activatedBy: MemorialModeState['activatedBy']) => void
   exitMemorialMode: () => void
+  updateMemorialNote: (note: string) => void
+  setFutureReuse: (allowed: boolean) => void
 }
 
 export const useMemorialStore = create<MemorialStore>((set) => ({
@@ -45,6 +47,20 @@ export const useMemorialStore = create<MemorialStore>((set) => ({
         activatedAt: null,
         activatedBy: null,
         canUndoUntil: null
+      }
+    })),
+  updateMemorialNote: (note) =>
+    set(({ memorial }) => ({
+      memorial: {
+        ...memorial,
+        userNote: note.trim() || null
+      }
+    })),
+  setFutureReuse: (allowed) =>
+    set(({ memorial }) => ({
+      memorial: {
+        ...memorial,
+        allowFutureReuse: allowed
       }
     }))
 }))

@@ -5,6 +5,10 @@ interface CollaborationStore {
   guardians: GuardianMember[]
   schedule: OnCallSchedule
   coordination: AlertCoordinationState
+  acknowledgeByGuardian: (guardianId: string) => void
+  setGuardianEnRoute: (guardianId: string) => void
+  markCannotRespond: (guardianId: string) => void
+  escalate: (level: AlertCoordinationState['escalationStatus'], reason: string) => void
 }
 
 const guardians: GuardianMember[] = [
@@ -58,7 +62,7 @@ const guardians: GuardianMember[] = [
   }
 ]
 
-export const useCollaborationStore = create<CollaborationStore>(() => ({
+export const useCollaborationStore = create<CollaborationStore>((set) => ({
   guardians,
   schedule: {
     patientId: 'patient-001',
@@ -82,5 +86,49 @@ export const useCollaborationStore = create<CollaborationStore>(() => ({
         timestamp: Date.now() - 1000 * 60 * 4
       }
     ]
-  }
+  },
+  acknowledgeByGuardian: (guardianId) =>
+    set((state) => ({
+      coordination: {
+        ...state.coordination,
+        acknowledgedGuardians: Array.from(
+          new Set([...state.coordination.acknowledgedGuardians, guardianId])
+        )
+      }
+    })),
+  setGuardianEnRoute: (guardianId) =>
+    set((state) => ({
+      coordination: {
+        ...state.coordination,
+        primaryResponder: guardianId,
+        enRouteGuardians: Array.from(new Set([...state.coordination.enRouteGuardians, guardianId])),
+        acknowledgedGuardians: Array.from(
+          new Set([...state.coordination.acknowledgedGuardians, guardianId])
+        )
+      }
+    })),
+  markCannotRespond: (guardianId) =>
+    set((state) => ({
+      coordination: {
+        ...state.coordination,
+        cannotRespondGuardians: Array.from(
+          new Set([...state.coordination.cannotRespondGuardians, guardianId])
+        )
+      }
+    })),
+  escalate: (level, reason) =>
+    set((state) => ({
+      coordination: {
+        ...state.coordination,
+        escalationStatus: level,
+        escalationTimeline: [
+          ...state.coordination.escalationTimeline,
+          {
+            level,
+            reason,
+            timestamp: Date.now()
+          }
+        ]
+      }
+    }))
 }))

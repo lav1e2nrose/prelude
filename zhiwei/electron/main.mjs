@@ -13,6 +13,8 @@ const createWindow = () => {
     minHeight: 760,
     frame: false,
     titleBarStyle: 'hidden',
+    autoHideMenuBar: true,
+    show: false,
     backgroundColor: '#090c11',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs')
@@ -26,6 +28,9 @@ const createWindow = () => {
   }
 
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  win.once('ready-to-show', () => {
+    win.show()
+  })
 
   return win
 }

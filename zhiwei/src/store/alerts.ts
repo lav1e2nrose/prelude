@@ -5,6 +5,8 @@ interface AlertsStore {
   alerts: AlertEvent[]
   acknowledgeAlert: (alertId: string) => void
   addAlert: (alert: AlertEvent) => void
+  createDemoAlert: (level: AlertEvent['level']) => void
+  markFalsePositive: (alertId: string) => void
 }
 
 const initialAlerts: AlertEvent[] = [
@@ -34,5 +36,36 @@ export const useAlertsStore = create<AlertsStore>((set) => ({
         alert.id === alertId ? { ...alert, acknowledged: true } : alert
       )
     })),
-  addAlert: (alert) => set((state) => ({ alerts: [alert, ...state.alerts] }))
+  addAlert: (alert) => set((state) => ({ alerts: [alert, ...state.alerts] })),
+  createDemoAlert: (level) =>
+    set((state) => {
+      const summaryByLevel: Record<AlertEvent['level'], string> = {
+        safe: '监测稳定，建议继续按计划观察',
+        attention: '宫缩频率上升，请先卧床休息并观察 30 分钟',
+        alert: '持续风险信号增强，建议通知家属并联系医生',
+        emergency: '高危预警，请立即启动紧急响应流程'
+      }
+      const now = Date.now()
+      const nextAlert: AlertEvent = {
+        id: `alert-${now}`,
+        patientId: 'patient-001',
+        level,
+        createdAt: now,
+        summary: summaryByLevel[level],
+        acknowledged: false
+      }
+      return { alerts: [nextAlert, ...state.alerts] }
+    }),
+  markFalsePositive: (alertId) =>
+    set((state) => ({
+      alerts: state.alerts.map((alert) =>
+        alert.id === alertId
+          ? {
+              ...alert,
+              acknowledged: true,
+              summary: `【已反馈误报】${alert.summary}`
+            }
+          : alert
+      )
+    }))
 }))
