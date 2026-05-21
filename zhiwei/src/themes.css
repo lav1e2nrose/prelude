@@ -1,0 +1,38 @@
+:root {
+  --safe: #5b8c5a;
+  --safe-glow: rgba(91, 140, 90, 0.25);
+  --attention: #c99846;
+  --attention-glow: rgba(201, 152, 70, 0.25);
+  --alert: #c85c50;
+  --alert-glow: rgba(200, 92, 80, 0.3);
+  --critical: #b23a48;
+  --ehg-ch1: #d4a574;
+  --ehg-ch2: #c29076;
+  --ehg-ch3: #a87968;
+  --ehg-ch4: #8e665a;
+  --fhr-color: #6b9080;
+  --mhr-color: #a4727b;
+  --shap-positive: #c85c50;
+  --shap-negative: #6b9080;
+  --shap-neutral: #8b8580;
+  --accent: #6b7e8c;
+  --accent-dim: rgba(107, 126, 140, 0.15);
+}
+
+[data-theme='pro'] {
+  --bg-0: #0f1114;
+  --bg-1: #16191d;
+  --bg-2: #1d2126;
+  --bg-3: #252a30;
+}
+
+[data-theme='warm'] {
+  --bg-0: #1c1a18;
+  --bg-1: #26221f;
+  --bg-2: #2f2a26;
+  --bg-3: #3a332e;
+}
+
+body {
+  background: var(--bg-0);
+}
