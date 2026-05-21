@@ -16,7 +16,7 @@ export const TitleBar = () => {
   useEffect(() => {
     const timer = window.setInterval(() => {
       setNow(new Date())
-    }, 1000 * 30)
+    }, 1000 * 60)
     return () => window.clearInterval(timer)
   }, [])
 

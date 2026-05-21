@@ -92,18 +92,17 @@ export const App = () => {
   const page = useAppStore((state) => state.page)
   const setPage = useAppStore((state) => state.setPage)
   const loggedIn = useAppStore((state) => state.loggedIn)
+  const isDesktop = Boolean(window.zhiwei?.desktop?.isDesktop)
 
   useEffect(() => {
-    const isDesktop = Boolean(window.zhiwei?.desktop?.isDesktop)
     if (!isDesktop) {
       document.documentElement.setAttribute('data-theme', 'pro')
       return
     }
     const theme = portal === 'patient' ? 'warm' : 'pro'
     document.documentElement.setAttribute('data-theme', theme)
-  }, [portal])
+  }, [isDesktop, portal])
 
-  const isDesktop = Boolean(window.zhiwei?.desktop?.isDesktop)
   if (!isDesktop) {
     return <DesktopOnlyScreen />
   }
