@@ -1,8 +1,14 @@
 import { useState } from 'react'
 
+interface OverrideRecord {
+  id: string
+  timeLabel: string
+  reason: string
+}
+
 export const OverridePanel = () => {
   const [reason, setReason] = useState('')
-  const [records, setRecords] = useState<string[]>([])
+  const [records, setRecords] = useState<OverrideRecord[]>([])
 
   return (
     <div className="rounded-2xl border border-white/10 bg-[var(--bg-1)] p-4">
@@ -23,7 +29,15 @@ export const OverridePanel = () => {
         onClick={() => {
           const trimmed = reason.trim()
           if (!trimmed) return
-          setRecords((prev) => [`${new Date().toLocaleTimeString('zh-CN')} · ${trimmed}`, ...prev])
+          const timestamp = Date.now()
+          setRecords((prev) => [
+            {
+              id: `override-${timestamp}`,
+              timeLabel: new Date(timestamp).toLocaleTimeString('zh-CN'),
+              reason: trimmed
+            },
+            ...prev
+          ])
           setReason('')
         }}
         className="mt-3 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm text-white"
@@ -34,8 +48,8 @@ export const OverridePanel = () => {
         <div className="mt-4 space-y-2 rounded-xl border border-white/10 bg-[var(--bg-2)]/60 p-3">
           <div className="text-xs text-slate-400">最近覆盖记录</div>
           {records.map((item) => (
-            <div key={item} className="text-xs text-slate-200">
-              {item}
+            <div key={item.id} className="text-xs text-slate-200">
+              {item.timeLabel} · {item.reason}
             </div>
           ))}
         </div>

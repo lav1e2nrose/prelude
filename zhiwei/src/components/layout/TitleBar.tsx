@@ -14,10 +14,20 @@ export const TitleBar = () => {
   }, [desktop])
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    let intervalId: number | null = null
+    const alignToMinute = window.setTimeout(() => {
       setNow(new Date())
-    }, 1000 * 60)
-    return () => window.clearInterval(timer)
+      intervalId = window.setInterval(() => {
+        setNow(new Date())
+      }, 1000 * 60)
+    }, (60 - new Date().getSeconds()) * 1000)
+
+    return () => {
+      window.clearTimeout(alignToMinute)
+      if (intervalId !== null) {
+        window.clearInterval(intervalId)
+      }
+    }
   }, [])
 
   return (
