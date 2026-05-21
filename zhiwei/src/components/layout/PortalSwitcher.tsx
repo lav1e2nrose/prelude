@@ -11,14 +11,16 @@ export const PortalSwitcher = () => {
   const setPortal = useAppStore((state) => state.setPortal)
 
   return (
-    <div className="flex items-center gap-2 rounded-full bg-[var(--bg-2)] p-1">
+    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-[var(--bg-2)]/90 p-1">
       {portals.map((item) => (
         <button
           key={item.id}
           type="button"
           onClick={() => setPortal(item.id)}
           className={`rounded-full px-4 py-1 text-sm transition ${
-            portal === item.id ? 'bg-[var(--accent)] text-white' : 'text-slate-300'
+            portal === item.id
+              ? 'bg-[var(--accent)] text-white shadow-[0_10px_24px_rgba(0,0,0,0.3)]'
+              : 'text-slate-300 hover:bg-white/5 hover:text-white'
           }`}
         >
           {item.label}

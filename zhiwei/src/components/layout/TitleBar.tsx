@@ -4,6 +4,7 @@ import { PortalSwitcher } from './PortalSwitcher'
 export const TitleBar = () => {
   const desktop = window.zhiwei?.desktop
   const [maximized, setMaximized] = useState(false)
+  const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
     if (!desktop?.onWindowStateChange) return
@@ -12,9 +13,16 @@ export const TitleBar = () => {
     })
   }, [desktop])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(new Date())
+    }, 1000 * 30)
+    return () => window.clearInterval(timer)
+  }, [])
+
   return (
     <header
-      className="drag-region flex items-center justify-between border-b border-white/10 bg-[var(--bg-1)] px-4 py-3"
+      className="drag-region flex items-center justify-between border-b border-white/10 bg-[var(--bg-1)]/95 px-4 py-3 backdrop-blur"
     >
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-sm font-bold text-[var(--accent)]">
@@ -24,8 +32,14 @@ export const TitleBar = () => {
           <div className="text-[11px] uppercase tracking-[0.32em] text-[var(--accent)]">zhiwei desktop</div>
           <div className="text-base font-semibold text-white">早产风险监测控制台</div>
         </div>
+        <div className="ml-3 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
+          独立窗口运行中
+        </div>
       </div>
       <div className="no-drag-region flex items-center gap-3">
+        <div className="rounded-full border border-white/10 bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
+          {now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+        </div>
         <PortalSwitcher />
         {desktop?.isDesktop ? (
           <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-[var(--bg-2)] p-1">

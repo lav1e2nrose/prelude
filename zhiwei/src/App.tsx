@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useEffect } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Sidebar, type SidebarItem } from './components/layout/Sidebar'
+import { DesktopOnlyScreen } from './pages/DesktopOnlyScreen'
 import { LoginScreen } from './pages/LoginScreen'
 import { AlgorithmFeedback } from './portals/doctor/AlgorithmFeedback'
 import { ContractionHeatmapPage } from './portals/doctor/ContractionHeatmapPage'
@@ -93,9 +94,19 @@ export const App = () => {
   const loggedIn = useAppStore((state) => state.loggedIn)
 
   useEffect(() => {
+    const isDesktop = Boolean(window.zhiwei?.desktop?.isDesktop)
+    if (!isDesktop) {
+      document.documentElement.setAttribute('data-theme', 'pro')
+      return
+    }
     const theme = portal === 'patient' ? 'warm' : 'pro'
     document.documentElement.setAttribute('data-theme', theme)
   }, [portal])
+
+  const isDesktop = Boolean(window.zhiwei?.desktop?.isDesktop)
+  if (!isDesktop) {
+    return <DesktopOnlyScreen />
+  }
 
   if (!loggedIn) {
     return <LoginScreen />
