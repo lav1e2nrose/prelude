@@ -436,7 +436,10 @@ export interface RiskExplanation {
 
 export interface FeatureContribution {
 
-&#x20; featureName: string                        // 'contractionsPerHour' | 'medianFrequency' | ...
+&#x20; featureName: string                        // 'contractionsPerHour' | 'medianFrequency' | 'peakFrequency' | 'rmsAmplitude'
+&#x20;                                         // | 'contractionRegularity' | 'contractionPropagationVelocity' | 'bandpowerLow' | 'bandpowerHigh'
+&#x20;                                         // | 'pretermProbability24h' | 'pretermProbability7d' | 'gestationalWeek' | 'cervicalLength'
+&#x20;                                         // | 'fetalMovementCount6h' | 'maternalHeartRate' | 'previousPretermHistory' | 'multiplePregnancy' | 'ivfPregnancy'
 
 &#x20; displayName: string                        // '宫缩频率' | '中值频率'
 
@@ -1326,7 +1329,13 @@ App
 
 &#x20; 14:05  开始监测
 
-&#x20; ...
+&#x20; 15:40  胎动 +1
+
+&#x20; 16:12  记录症状：腹部紧绷
+
+&#x20; 18:05  假性宫缩
+
+&#x20; 20:10  结束监测
 
 ```
 
@@ -1466,7 +1475,9 @@ App
 
 │  ⊙  关注                  │   18:00 ─                │
 
-│                          │   ...                    │
+│                          │   20:32  ▌ 关注 20s      │
+
+│                          │   22:18  ▌ 假性 10s      │
 
 └──────────────────────────┴──────────────────────────┘
 
@@ -2060,7 +2071,11 @@ T+15s   全员自动启动倒计时呼叫 120（同前规范）
 
 王X     34+1   早产史                 0          1.2%        🟢平稳   \[查看]
 
-...
+周敏    30+2   宫颈机能不全           2 次/h    9.6%        🟡留意   \[查看]
+
+赵X    27+6   双胎/高龄              4 次/h    24.1%       🔴警示   \[查看]
+
+钱蕾    36+0   试管/高龄              0.5 次/h  3.1%        🟢平稳   \[查看]
 
 ```
 
@@ -2650,7 +2665,9 @@ OOD 检测分数：0.12  （低，分布内）
 
 │  李慧    11-13 03:11  emergency  override    \[审核]    │
 
-│  ...                                                   │
+│  王X    11-13 09:05  有效宫缩   confirm     \[已通过]  │
+
+│  周敏   11-13 22:41  alert      false\_pos   \[退回]    │
 
 │                                                        │
 
@@ -3448,7 +3465,37 @@ export const SENSITIVE\_COPY = {
 
 &#x20;   // 不是 "失去宝宝"，不是 "妊娠终止"，是中性的 "结束孕程"
 
-&#x20;   // ...
+&#x20;   entrySubtitle: '我们可以把应用切换到静默模式',
+
+&#x20;   entryBody: '如果这段时间对您来说很难，我们可以停止所有提醒与提示音。您仍可在需要时手动查看数据。此操作可随时撤回。',
+
+&#x20;   entryPrimary: '进入静默模式',
+
+&#x20;   entrySecondary: '暂不处理',
+
+&#x20;   confirmTitle: '确认进入静默模式？',
+
+&#x20;   confirmBody: '进入后将停止推送、倒计时警报与家属通知。您可随时从设置恢复。',
+
+&#x20;   confirmPrimary: '确认进入',
+
+&#x20;   confirmSecondary: '再想想',
+
+&#x20;   revokeTitle: '撤回静默模式',
+
+&#x20;   revokeBody: '撤回后将恢复常规提醒与监测提示。',
+
+&#x20;   revokePrimary: '恢复常规模式',
+
+&#x20;   revokeSecondary: '保持静默',
+
+&#x20;   deleteTitle: '删除所有本地数据',
+
+&#x20;   deleteBody: '删除后无法在本设备恢复。医院端依法保留的数据不在此范围。',
+
+&#x20;   deletePrimary: '确认删除',
+
+&#x20;   deleteSecondary: '取消'
 
 &#x20; }
 
@@ -5259,4 +5306,3 @@ export const BLACKLIST\_WORDS = \[
 > 本 PART 的服务对象不是普通用户，而是\*\*正在经历或刚刚经历人生最痛苦时刻的用户\*\*。
 
 > 她们不需要"良好的用户体验"，她们需要一个\*\*不再打扰她们的 App\*\*。
-
