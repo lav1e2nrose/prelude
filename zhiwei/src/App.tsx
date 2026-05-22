@@ -100,12 +100,14 @@ export const App = () => {
       return
     }
 
+    let timeoutId = 0
     const rafId = window.requestAnimationFrame(() => {
       if (window.zhiwei?.desktop?.isDesktop) {
+        window.clearTimeout(timeoutId)
         setRuntimeReady(true)
       }
     })
-    const timeoutId = window.setTimeout(() => {
+    timeoutId = window.setTimeout(() => {
       setRuntimeReady(true)
     }, 320)
 

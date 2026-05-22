@@ -1,16 +1,17 @@
 import { useAppStore } from '../../store'
-import { mockScenarios } from '../../data/mockScenarios'
+import { getMockScenarioDefinition, mockScenarios } from '../../data/mockScenarios'
 
 export const MockModeBanner = () => {
   const mockScenario = useAppStore((state) => state.mockScenario)
   const setMockScenario = useAppStore((state) => state.setMockScenario)
+  const scenario = getMockScenarioDefinition(mockScenario)
 
   return (
     <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-2)] p-4">
       <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Mock 演示</div>
       <div className="mt-3 flex flex-col gap-3">
         <div className="text-sm text-slate-300">
-          当前剧本：{mockScenarios[mockScenario - 1]?.id}. {mockScenarios[mockScenario - 1]?.label}
+          当前剧本：{scenario.id}. {scenario.label}
         </div>
         <select
           value={mockScenario}

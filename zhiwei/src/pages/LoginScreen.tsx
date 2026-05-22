@@ -1,9 +1,19 @@
 import { getMockScenarioDefinition, mockScenarios } from '../data/mockScenarios'
 import { type PortalType, useAppStore } from '../store'
 
-const roleCards = [
+interface RoleCard {
+  id: PortalType
+  icon: string
+  title: string
+  englishTitle: string
+  persona: string
+  subtitle: string
+  description: string
+}
+
+const roleCards: RoleCard[] = [
   {
-    id: 'patient' as PortalType,
+    id: 'patient',
     icon: '👩',
     title: '孕妇端',
     englishTitle: 'Mama',
@@ -12,7 +22,7 @@ const roleCards = [
     description: '查看实时波形、宫缩趋势、今日任务与安抚式提醒。'
   },
   {
-    id: 'guardian' as PortalType,
+    id: 'guardian',
     icon: '👨',
     title: '家属端',
     englishTitle: 'Family',
@@ -21,7 +31,7 @@ const roleCards = [
     description: '统一查看状态变化、任务认领与远程协同响应。'
   },
   {
-    id: 'doctor' as PortalType,
+    id: 'doctor',
     icon: '⚕',
     title: '医生端',
     englishTitle: 'Doctor',
@@ -29,7 +39,7 @@ const roleCards = [
     subtitle: '临床解释与决策覆盖',
     description: '查看患者队列、算法解释、病例对照与人工覆盖入口。'
   }
-] as const
+]
 
 export const LoginScreen = () => {
   const setLoggedIn = useAppStore((state) => state.setLoggedIn)
