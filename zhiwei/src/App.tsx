@@ -100,19 +100,20 @@ export const App = () => {
       return
     }
 
-    let timeoutId = 0
-    const rafId = window.requestAnimationFrame(() => {
+    const intervalId = window.setInterval(() => {
       if (window.zhiwei?.desktop?.isDesktop) {
         window.clearTimeout(timeoutId)
+        window.clearInterval(intervalId)
         setRuntimeReady(true)
       }
-    })
-    timeoutId = window.setTimeout(() => {
+    }, 32)
+    const timeoutId = window.setTimeout(() => {
+      window.clearInterval(intervalId)
       setRuntimeReady(true)
     }, 320)
 
     return () => {
-      window.cancelAnimationFrame(rafId)
+      window.clearInterval(intervalId)
       window.clearTimeout(timeoutId)
     }
   }, [])

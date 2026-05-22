@@ -1,7 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron')
+const { version } = require('../package.json')
 
 contextBridge.exposeInMainWorld('zhiwei', {
-  version: '0.0.0',
+  version,
   desktop: {
     isDesktop: true,
     minimize: () => ipcRenderer.invoke('window:minimize'),
