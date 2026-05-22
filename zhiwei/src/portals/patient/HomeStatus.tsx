@@ -9,37 +9,65 @@ export const HomeStatus = () => {
   const createDemoAlert = useAlertsStore((state) => state.createDemoAlert)
   const markFalsePositive = useAlertsStore((state) => state.markFalsePositive)
   const latestAlert = alerts[0]
+  const pendingAlerts = alerts.filter((alert) => !alert.acknowledged).length
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-white/10 bg-[var(--bg-1)]/90 p-5 shadow-[0_22px_70px_rgba(0,0,0,0.28)]">
-        <div className="flex items-start justify-between gap-4">
+      <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)]/95 p-5 shadow-[var(--shadow-card)]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-[0.3em] text-slate-400">患者概览</div>
-            <div className="mt-2 text-2xl font-semibold text-white">小雅 · 孕 32 周 3 天</div>
-            <p className="mt-2 text-sm text-slate-300">建议保持左侧卧姿势，已同步家属端与医生端实时状态。</p>
+            <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">小雅 · 孕 32 周 3 天</div>
+            <p className="mt-2 text-sm text-slate-300">
+              当前处于高危妊娠随访期，监测数据已自动同步至家属与医生端。
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1">
+                待处理预警 {pendingAlerts} 条
+              </span>
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1">
+                下一次复查 05-29
+              </span>
+            </div>
           </div>
           <StatusOrb level={latestAlert?.level ?? 'attention'} label="实时风险状态" />
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
+          {[
+            { label: '母体心率', value: '86 bpm', hint: '稳定' },
+            { label: '胎心率', value: '142 bpm', hint: '正常' },
+            { label: '电极质量', value: '92%', hint: '良好' },
+            { label: '电池电量', value: '81%', hint: '可用 6h' }
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 px-3 py-2"
+            >
+              <div className="text-xs text-slate-400">{item.label}</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">{item.value}</div>
+              <div className="text-[11px] text-slate-400">{item.hint}</div>
+            </div>
+          ))}
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           <button
             type="button"
             onClick={() => createDemoAlert('attention')}
-            className="rounded-xl border border-amber-300/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-100 transition hover:bg-amber-500/15"
+            className="rounded-[var(--radius-control)] border border-amber-300/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-100 transition hover:bg-amber-500/15"
           >
             模拟轻度预警
           </button>
           <button
             type="button"
             onClick={() => createDemoAlert('alert')}
-            className="rounded-xl border border-[var(--alert)]/30 bg-[var(--alert)]/10 px-4 py-2 text-sm text-rose-100 transition hover:bg-[var(--alert)]/15"
+            className="rounded-[var(--radius-control)] border border-[var(--alert)]/30 bg-[var(--alert)]/10 px-4 py-2 text-sm text-rose-100 transition hover:bg-[var(--alert)]/15"
           >
             模拟高风险预警
           </button>
           <button
             type="button"
             onClick={() => createDemoAlert('emergency')}
-            className="rounded-xl border border-[var(--critical)]/40 bg-[var(--critical)]/15 px-4 py-2 text-sm text-rose-100 transition hover:bg-[var(--critical)]/20"
+            className="rounded-[var(--radius-control)] border border-[var(--critical)]/40 bg-[var(--critical)]/15 px-4 py-2 text-sm text-rose-100 transition hover:bg-[var(--critical)]/20"
           >
             模拟紧急状态
           </button>
@@ -47,11 +75,14 @@ export const HomeStatus = () => {
       </section>
 
       {latestAlert ? (
-        <section className="rounded-2xl border border-white/10 bg-[var(--bg-1)] p-4">
+        <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-xs uppercase tracking-[0.25em] text-slate-400">最近一次预警</div>
-          <div className="mt-2 text-base font-semibold text-white">{latestAlert.summary}</div>
+          <div className="mt-2 text-base font-semibold text-[var(--text-primary)]">{latestAlert.summary}</div>
           <div className="mt-2 text-xs text-slate-400">
             {new Date(latestAlert.createdAt).toLocaleString('zh-CN')} · 等级 {latestAlert.level}
+          </div>
+          <div className="mt-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 px-3 py-2 text-xs text-slate-300">
+            建议：保持左侧卧，减少体位变化。如出现规律宫缩，请立即联系医生。
           </div>
           <div className="mt-4">
             <FalsePositiveFeedback onFeedback={() => markFalsePositive(latestAlert.id)} />
@@ -59,7 +90,15 @@ export const HomeStatus = () => {
         </section>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+          <div className="text-xs uppercase tracking-[0.3em] text-slate-400">今日监测计划</div>
+          <ul className="mt-3 space-y-2 text-sm text-slate-300">
+            <li>14:00-16:00 卧床休息，保持左侧卧</li>
+            <li>18:30 进行 15 分钟呼吸训练</li>
+            <li>22:00 发送晚间状态给家属与医生</li>
+          </ul>
+        </div>
         <MockModeBanner />
         <MemorialModeBanner />
       </div>

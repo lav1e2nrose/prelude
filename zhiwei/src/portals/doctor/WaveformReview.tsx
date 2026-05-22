@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { CounterfactualChart } from '../../components/charts/CounterfactualChart'
 import { ExplainabilityPanel } from '../../components/shared/ExplainabilityPanel'
 import { ExplainabilityEngine } from '../../data/ExplainabilityEngine'
@@ -24,13 +25,32 @@ const demoFrame: EHGFrame = {
 const explanation = explainabilityEngine.generateExplanation(demoFrame)
 
 export const WaveformReview = () => {
+  const [note, setNote] = useState('')
+
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
       <div className="space-y-4">
         <EHGWaveformChart />
         <ExplainabilityPanel explanation={explanation} />
       </div>
-      <CounterfactualChart />
+      <div className="space-y-4">
+        <CounterfactualChart scenarios={explanation.counterfactuals} />
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+          <div className="text-sm text-slate-300">波形复核标注</div>
+          <textarea
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="标注噪声区段、体位变化或临床判断依据..."
+            className="mt-3 h-28 w-full resize-none rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-slate-200 outline-none focus:border-[var(--accent)]"
+          />
+          <button
+            type="button"
+            className="mt-3 rounded-[var(--radius-control)] bg-[var(--accent)] px-4 py-2 text-xs text-white"
+          >
+            保存复核备注
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

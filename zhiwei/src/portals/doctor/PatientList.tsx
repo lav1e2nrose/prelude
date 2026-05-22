@@ -14,7 +14,7 @@ const patients = [
 const explainabilityEngine = new ExplainabilityEngine()
 
 export const PatientList = () => {
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(patients[0]?.id ?? null)
   const selectedPatient = patients.find((patient) => patient.id === selectedPatientId) ?? null
   const explanation = useMemo(() => {
     if (!selectedPatient) return null
@@ -39,34 +39,48 @@ export const PatientList = () => {
 
   return (
     <div className="space-y-4">
-      {patients.map((patient) => (
-        <div
-          key={patient.id}
-          className={`flex items-center justify-between rounded-2xl border p-4 ${
-            selectedPatientId === patient.id
-              ? 'border-[var(--accent)]/60 bg-[var(--accent-dim)]'
-              : 'border-white/10 bg-[var(--bg-1)]'
-          }`}
-        >
-          <div>
-            <div className="text-sm text-slate-400">{patient.id}</div>
-            <div className="text-lg font-semibold text-white">{patient.name}</div>
-            <div className="text-xs text-slate-400">孕周 {patient.week}</div>
-          </div>
-          <div className="flex items-center gap-4">
-            <StatusOrb level={patient.level} label="风险状态" />
-            <ExplanationTrigger onClick={() => setSelectedPatientId(patient.id)} />
-          </div>
+      <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+        <div className="text-sm text-slate-300">患者总览</div>
+        <div className="mt-2 text-xs text-slate-400">今日需重点关注 {patients.filter((p) => p.level !== 'safe').length} 人</div>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_1.8fr]">
+        <div className="space-y-3">
+          {patients.map((patient) => (
+            <div
+              key={patient.id}
+              className={`flex items-center justify-between rounded-[var(--radius-card)] border p-4 ${
+                selectedPatientId === patient.id
+                  ? 'border-[var(--accent)]/60 bg-[var(--accent-dim)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--bg-1)]'
+              }`}
+            >
+              <div>
+                <div className="text-sm text-slate-400">{patient.id}</div>
+                <div className="text-lg font-semibold text-[var(--text-primary)]">{patient.name}</div>
+                <div className="text-xs text-slate-400">孕周 {patient.week}</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <StatusOrb level={patient.level} label="风险状态" />
+                <ExplanationTrigger onClick={() => setSelectedPatientId(patient.id)} />
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-      {explanation && selectedPatient ? (
-        <div className="rounded-2xl border border-white/10 bg-[var(--bg-1)] p-4">
-          <div className="mb-3 text-sm text-slate-300">
-            临床解释 · {selectedPatient.name}（{selectedPatient.id}）
-          </div>
-          <ExplainabilityPanel explanation={explanation} />
+        <div className="space-y-4">
+          {selectedPatient ? (
+            <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+              <div className="mb-2 text-sm text-slate-300">
+                临床解释 · {selectedPatient.name}（{selectedPatient.id}）
+              </div>
+              {explanation ? <ExplainabilityPanel explanation={explanation} /> : null}
+            </div>
+          ) : (
+            <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4 text-sm text-slate-300">
+              选择患者以查看临床解释与风险来源。
+            </div>
+          )}
         </div>
-      ) : null}
+      </div>
     </div>
   )
 }

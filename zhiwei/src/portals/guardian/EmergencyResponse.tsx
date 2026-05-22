@@ -7,7 +7,7 @@ export const EmergencyResponse = () => {
 
   return (
     <>
-      <div className="rounded-2xl border border-white/10 bg-[var(--bg-1)] p-5">
+      <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-5">
         <div className="text-sm text-slate-300">紧急响应</div>
         <p className="mt-3 text-sm text-slate-200">遵循 3 秒倒计时取消范式，避免误触发并保留紧急操作速度。</p>
         <div className="mt-5 flex flex-wrap gap-3">

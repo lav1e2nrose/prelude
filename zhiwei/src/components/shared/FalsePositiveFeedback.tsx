@@ -7,7 +7,7 @@ export const FalsePositiveFeedback = ({ onFeedback }: FalsePositiveFeedbackProps
     <button
       type="button"
       onClick={() => onFeedback?.('false_positive')}
-      className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-300"
+      className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-4 py-2 text-xs text-slate-300"
     >
       这次预警不准，提交反馈
     </button>
