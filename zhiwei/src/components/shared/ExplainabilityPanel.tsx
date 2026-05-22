@@ -39,7 +39,7 @@ export const ExplainabilityPanel = ({ explanation }: ExplainabilityPanelProps) =
         </div>
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <ShapBarChart contributions={explanation.featureContributions} />
+        <ShapBarChart contributions={explanation.featureContributions ?? []} />
         <div className="space-y-3">
           <div className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 p-3">
             <div className="text-xs text-slate-400">相似病例摘要</div>

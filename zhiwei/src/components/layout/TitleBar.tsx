@@ -8,6 +8,12 @@ export const TitleBar = () => {
   const [now, setNow] = useState(() => new Date())
   const portal = useAppStore((state) => state.portal)
   const mockScenario = useAppStore((state) => state.mockScenario)
+  const portalLabelMap = {
+    patient: '孕妇端',
+    guardian: '家属端',
+    doctor: '医生端'
+  }
+  const portalLabel = portalLabelMap[portal] ?? '未知'
 
   useEffect(() => {
     if (!desktop?.onWindowStateChange) return
@@ -54,7 +60,7 @@ export const TitleBar = () => {
           {now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
         </div>
         <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
-          模式：{portal === 'patient' ? '孕妇端' : portal === 'guardian' ? '家属端' : '医生端'}
+          模式：{portalLabel}
         </div>
         <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
           Mock 剧本 {mockScenario}

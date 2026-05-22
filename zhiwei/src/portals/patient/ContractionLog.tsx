@@ -12,8 +12,8 @@ export const ContractionLog = () => {
     if (logs.length === 0) return { average: 0, longest: 0 }
     const durations = logs.map((log) => log.duration)
     const total = durations.reduce((sum, value) => sum + value, 0)
-    const average = durations.length === 0 ? 0 : Math.round(total / durations.length)
-    const longest = durations.length === 0 ? 0 : Math.max(...durations)
+    const average = Math.round(total / durations.length)
+    const longest = Math.max(...durations)
     return { average, longest }
   }, [logs])
 

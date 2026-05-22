@@ -34,7 +34,7 @@ export const WaveformReview = () => {
         <ExplainabilityPanel explanation={explanation} />
       </div>
       <div className="space-y-4">
-        <CounterfactualChart scenarios={explanation.counterfactuals} />
+        <CounterfactualChart scenarios={explanation.counterfactuals ?? []} />
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-sm text-slate-300">波形复核标注</div>
           <textarea
