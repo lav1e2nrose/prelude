@@ -8,7 +8,7 @@ const waveformSeries = [
 const toPoints = (values: number[], width: number, height: number) => {
   const max = Math.max(...values)
   const min = Math.min(...values)
-  const range = max - min || 1
+  const range = max - min === 0 ? 1 : max - min
   return values
     .map((value, index) => {
       const x = (index / (values.length - 1)) * width

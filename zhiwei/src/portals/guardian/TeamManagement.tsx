@@ -42,7 +42,7 @@ export const TeamManagement = () => {
         <div className="mt-3 space-y-2 text-xs text-slate-400">
           {schedule.shifts.map((shift) => (
             <div key={`${shift.guardianId}-${shift.startTime}`} className="flex items-center justify-between">
-              <span>{guardians.find((guardian) => guardian.id === shift.guardianId)?.name}</span>
+              <span>{guardians.find((guardian) => guardian.id === shift.guardianId)?.name ?? '未知成员'}</span>
               <span>
                 {shift.startTime}-{shift.endTime} · {shift.daysOfWeek.length} 天/周
               </span>

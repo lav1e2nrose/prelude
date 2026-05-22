@@ -42,7 +42,7 @@ export const CounterfactualChart = ({ scenarios = fallbackScenarios }: Counterfa
               <div className="mt-2 h-2 rounded-full bg-[var(--bg-1)]">
                 <div
                   className="h-full rounded-full bg-[var(--alert)]"
-                  style={{ width: `${Math.min(100, riskPercent)}%` }}
+                  style={{ width: `${Math.max(0, Math.min(100, riskPercent))}%` }}
                 />
               </div>
             </div>

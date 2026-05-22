@@ -11,8 +11,9 @@ export const ContractionLog = () => {
   const summary = useMemo(() => {
     if (logs.length === 0) return { average: 0, longest: 0 }
     const durations = logs.map((log) => log.duration)
-    const average = Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length)
-    const longest = Math.max(...durations)
+    const total = durations.reduce((sum, value) => sum + value, 0)
+    const average = durations.length === 0 ? 0 : Math.round(total / durations.length)
+    const longest = durations.length === 0 ? 0 : Math.max(...durations)
     return { average, longest }
   }, [logs])
 
