@@ -4,7 +4,7 @@ interface CounterfactualChartProps {
   scenarios?: Counterfactual[]
 }
 
-const fallbackScenarios: Counterfactual[] = [
+const defaultScenarios: Counterfactual[] = [
   {
     scenario: '宫缩频率降至 2 次/h',
     conditionChanges: { contractionsPerHour: 2 },
@@ -21,7 +21,7 @@ const fallbackScenarios: Counterfactual[] = [
   }
 ]
 
-export const CounterfactualChart = ({ scenarios = fallbackScenarios }: CounterfactualChartProps) => {
+export const CounterfactualChart = ({ scenarios = defaultScenarios }: CounterfactualChartProps) => {
   return (
     <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
       <div className="text-sm text-slate-300">反事实分析</div>

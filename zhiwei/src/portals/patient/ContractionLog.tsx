@@ -8,6 +8,8 @@ const initialLogs = [
 
 export const ContractionLog = () => {
   const [logs, setLogs] = useState(initialLogs)
+  const [manualDuration, setManualDuration] = useState(40)
+  const [manualIntensity, setManualIntensity] = useState('中等')
   const summary = useMemo(() => {
     if (logs.length === 0) return { average: 0, longest: 0 }
     const durations = logs.map((log) => log.duration)
@@ -37,21 +39,47 @@ export const ContractionLog = () => {
         </div>
       </div>
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-slate-300">最新记录</div>
-          <button
-            type="button"
-            onClick={() => {
-              const now = new Date()
-              const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-              const duration = Math.floor(30 + Math.random() * 40)
-              const intensity = duration > 50 ? '偏强' : duration > 40 ? '中等' : '轻度'
-              setLogs((prev) => [{ time, duration, intensity }, ...prev])
-            }}
-            className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-1 text-xs text-slate-300"
-          >
-            手动记录
-          </button>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+            <label className="flex items-center gap-2">
+              时长
+              <input
+                type="number"
+                min={10}
+                max={180}
+                value={manualDuration}
+                onChange={(event) => setManualDuration(Number(event.target.value))}
+                className="w-20 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1 text-xs text-[var(--text-primary)]"
+              />
+              s
+            </label>
+            <label className="flex items-center gap-2">
+              强度
+              <select
+                value={manualIntensity}
+                onChange={(event) => setManualIntensity(event.target.value)}
+                className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1 text-xs text-[var(--text-primary)]"
+              >
+                <option value="轻度">轻度</option>
+                <option value="中等">中等</option>
+                <option value="偏强">偏强</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                const now = new Date()
+                const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+                const duration = Math.max(10, manualDuration)
+                const intensity = manualIntensity
+                setLogs((prev) => [{ time, duration, intensity }, ...prev])
+              }}
+              className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-1 text-xs text-slate-300"
+            >
+              手动记录
+            </button>
+          </div>
         </div>
         <div className="mt-4 space-y-3">
           {logs.map((log) => (
