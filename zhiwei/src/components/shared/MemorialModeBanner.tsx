@@ -18,28 +18,28 @@ export const MemorialModeBanner = () => {
 
   return (
     <>
-      <div className="rounded-2xl border border-white/10 bg-[var(--bg-2)]/95 p-4 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+      <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-2)]/95 p-4 shadow-[var(--shadow-card)]">
         <div className="text-xs uppercase tracking-[0.3em] text-slate-400">记忆模式</div>
         {!memorial.enabled ? (
           <div className="mt-3">
-            <div className="text-sm font-semibold text-white">{SENSITIVE_COPY.memorialMode.entryTitle}</div>
+            <div className="text-sm font-semibold text-[var(--text-primary)]">{SENSITIVE_COPY.memorialMode.entryTitle}</div>
             <p className="mt-2 text-sm text-slate-300">{SENSITIVE_COPY.memorialMode.entryBody}</p>
             <div className="mt-4 flex gap-3">
               <button
                 type="button"
                 onClick={() => setConfirmMode('enter')}
-                className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm text-white"
+                className="rounded-[var(--radius-control)] bg-[var(--accent)] px-4 py-2 text-sm text-white"
               >
                 {SENSITIVE_COPY.memorialMode.entryPrimary}
               </button>
-              <button type="button" className="rounded-xl border border-white/10 px-4 py-2 text-sm">
+              <button type="button" className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-4 py-2 text-sm">
                 {SENSITIVE_COPY.memorialMode.entrySecondary}
               </button>
             </div>
           </div>
         ) : (
           <div className="mt-3 space-y-3">
-            <div className="text-sm font-semibold text-white">当前处于静默模式</div>
+            <div className="text-sm font-semibold text-[var(--text-primary)]">当前处于静默模式</div>
             <p className="text-sm text-slate-300">系统已暂停所有提示与家属通知，界面默认进入低刺激显示。</p>
             <div className="rounded-xl border border-amber-300/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
               可撤回截止：{undoText ?? '未设置'}
@@ -49,21 +49,21 @@ export const MemorialModeBanner = () => {
               <textarea
                 defaultValue={memorial.userNote ?? ''}
                 onBlur={(event) => updateMemorialNote(event.target.value)}
-                className="mt-2 h-20 w-full resize-none rounded-lg border border-white/10 bg-[var(--bg-1)] px-3 py-2 text-xs text-slate-200 outline-none focus:border-[var(--accent)]"
+                className="mt-2 h-20 w-full resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-1)] px-3 py-2 text-xs text-slate-200 outline-none focus:border-[var(--accent)]"
               />
             </label>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setFutureReuse(true)}
-                className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-200"
+                className="rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs text-slate-200"
               >
                 允许未来复用匿名数据
               </button>
               <button
                 type="button"
                 onClick={() => setFutureReuse(false)}
-                className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-200"
+                className="rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs text-slate-200"
               >
                 禁止未来复用匿名数据
               </button>
@@ -71,7 +71,7 @@ export const MemorialModeBanner = () => {
             <button
               type="button"
               onClick={() => setConfirmMode('exit')}
-              className="rounded-xl border border-white/10 px-4 py-2 text-sm"
+              className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-4 py-2 text-sm"
             >
               {SENSITIVE_COPY.memorialMode.revokePrimary}
             </button>

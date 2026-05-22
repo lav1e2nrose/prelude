@@ -13,7 +13,7 @@ export const CoordinationView = () => {
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
       <div className="space-y-4">
-        <div className="rounded-2xl border border-white/10 bg-[var(--bg-1)] p-4">
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-sm text-slate-300">协作响应状态</div>
           <div className="mt-4 text-sm text-slate-200">
             已确认：{coordination.acknowledgedGuardians.length} 人 · 在路上：{coordination.enRouteGuardians.length} 人
@@ -41,11 +41,11 @@ export const CoordinationView = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-[var(--bg-1)] p-4">
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-sm text-slate-300">成员响应操作</div>
           <div className="mt-3 space-y-3">
             {guardians.map((guardian) => (
-              <div key={guardian.id} className="rounded-xl border border-white/10 bg-[var(--bg-2)]/60 p-3">
+              <div key={guardian.id} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)]/60 p-3">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-white">{guardian.name}</div>
                   <div className="text-xs text-slate-400">{guardian.relationship}</div>
@@ -78,7 +78,7 @@ export const CoordinationView = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-[var(--bg-1)] p-4">
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-sm text-slate-300">升级时间线</div>
           <div className="mt-4 space-y-3">
             {coordination.escalationTimeline.map((item) => (

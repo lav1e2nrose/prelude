@@ -14,7 +14,7 @@ interface StatusOrbProps {
 
 export const StatusOrb = ({ level, label }: StatusOrbProps) => {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-[var(--bg-2)] px-4 py-2">
+    <div className="flex items-center gap-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-2">
       <span className={`h-3 w-3 rounded-full ${levelStyles[level]}`} />
       <span className="text-sm text-slate-200">{label}</span>
     </div>

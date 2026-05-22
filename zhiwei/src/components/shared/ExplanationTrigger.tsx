@@ -7,7 +7,7 @@ export const ExplanationTrigger = ({ onClick }: ExplanationTriggerProps) => {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/20 text-xs text-white"
+      className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-default)] text-xs text-[var(--text-primary)]"
     >
       ⓘ
     </button>
