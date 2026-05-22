@@ -1,10 +1,45 @@
 import type { FeatureContribution } from '../../types/signal'
 
 interface ShapBarChartProps {
-  contributions: FeatureContribution[]
+  contributions?: FeatureContribution[]
 }
 
-export const ShapBarChart = ({ contributions }: ShapBarChartProps) => {
+const defaultContributions: FeatureContribution[] = [
+  {
+    featureName: 'contractionsPerHour',
+    displayName: '宫缩频率',
+    currentValue: 3.2,
+    baselineValue: 1.6,
+    contribution: 0.24,
+    unit: '次/h'
+  },
+  {
+    featureName: 'maternalHeartRate',
+    displayName: '母体心率',
+    currentValue: 92,
+    baselineValue: 78,
+    contribution: 0.1,
+    unit: 'bpm'
+  },
+  {
+    featureName: 'bandpowerHigh',
+    displayName: '高频带功率',
+    currentValue: 0.68,
+    baselineValue: 0.44,
+    contribution: 0.16,
+    unit: 'a.u.'
+  },
+  {
+    featureName: 'fetalMovementCount6h',
+    displayName: '近 6 小时胎动',
+    currentValue: 11,
+    baselineValue: 14,
+    contribution: -0.12,
+    unit: '次'
+  }
+]
+
+export const ShapBarChart = ({ contributions = defaultContributions }: ShapBarChartProps) => {
   const maxValue = Math.max(
     ...contributions.map((item) => Math.abs(item.contribution)),
     0.2

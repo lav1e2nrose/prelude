@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Sidebar, type SidebarItem } from './components/layout/Sidebar'
 import { DesktopOnlyScreen } from './pages/DesktopOnlyScreen'
@@ -92,16 +92,54 @@ export const App = () => {
   const page = useAppStore((state) => state.page)
   const setPage = useAppStore((state) => state.setPage)
   const loggedIn = useAppStore((state) => state.loggedIn)
+  const [runtimeReady, setRuntimeReady] = useState(() => Boolean(window.zhiwei?.desktop?.isDesktop))
   const isDesktop = Boolean(window.zhiwei?.desktop?.isDesktop)
 
   useEffect(() => {
-    if (!isDesktop) {
+    if (window.zhiwei?.desktop?.isDesktop) {
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (window.zhiwei?.desktop?.isDesktop) {
+        window.clearTimeout(timeoutId)
+        window.clearInterval(intervalId)
+        setRuntimeReady(true)
+      }
+    }, 32)
+    const timeoutId = window.setTimeout(() => {
+      window.clearInterval(intervalId)
+      setRuntimeReady(true)
+    }, 320)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.clearTimeout(timeoutId)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!runtimeReady || !isDesktop) {
       document.documentElement.setAttribute('data-theme', 'pro')
       return
     }
     const theme = portal === 'patient' ? 'warm' : 'pro'
     document.documentElement.setAttribute('data-theme', theme)
-  }, [isDesktop, portal])
+  }, [isDesktop, portal, runtimeReady])
+
+  if (!runtimeReady) {
+    return (
+      <div className="relative flex h-screen items-center justify-center overflow-hidden bg-[var(--bg-0)] px-6 text-[var(--text-primary)]">
+        <div className="pointer-events-none absolute -left-20 top-8 h-80 w-80 rounded-full bg-[var(--accent)]/20 blur-[120px]" />
+        <div className="pointer-events-none absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-[var(--alert)]/15 blur-[140px]" />
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)]/95 px-8 py-7 shadow-[var(--shadow-card)] backdrop-blur-md">
+          <div className="text-xs uppercase tracking-[0.34em] text-[var(--accent)]">zhiwei desktop</div>
+          <div className="mt-3 text-lg font-semibold">正在连接桌面运行时…</div>
+          <div className="mt-2 text-sm text-slate-300">初始化窗口控制、设备桥接与演示环境。</div>
+        </div>
+      </div>
+    )
+  }
 
   if (!isDesktop) {
     return <DesktopOnlyScreen />

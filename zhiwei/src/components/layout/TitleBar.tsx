@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getMockScenarioDefinition } from '../../data/mockScenarios'
 import { PortalSwitcher } from './PortalSwitcher'
 import { useAppStore } from '../../store'
 
@@ -14,6 +15,7 @@ export const TitleBar = () => {
     doctor: '医生端'
   }
   const portalLabel = portalLabelMap[portal] ?? '未知'
+  const scenario = getMockScenarioDefinition(mockScenario)
 
   useEffect(() => {
     if (!desktop?.onWindowStateChange) return
@@ -54,6 +56,10 @@ export const TitleBar = () => {
         <div className="ml-3 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
           独立窗口运行中
         </div>
+        <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
+          <span className="mr-2 inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(74,222,128,0.8)]" />
+          {scenario.connection}
+        </div>
       </div>
       <div className="no-drag-region flex items-center gap-3">
         <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
@@ -63,7 +69,13 @@ export const TitleBar = () => {
           模式：{portalLabel}
         </div>
         <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
-          Mock 剧本 {mockScenario}
+          剧本：{scenario.label}
+        </div>
+        <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
+          电量 {scenario.battery}
+        </div>
+        <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
+          电极质量 {scenario.electrodeQuality}
         </div>
         <PortalSwitcher />
         {desktop?.isDesktop ? (
