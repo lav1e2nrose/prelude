@@ -1,9 +1,9 @@
 import { useAppStore } from '../../store'
 
 const portals = [
-  { id: 'patient', label: '孕妇端' },
-  { id: 'guardian', label: '家属端' },
-  { id: 'doctor', label: '医生端' }
+  { id: 'patient', label: '孕妇端', icon: '👩' },
+  { id: 'guardian', label: '家属端', icon: '👨' },
+  { id: 'doctor', label: '医生端', icon: '⚕' }
 ] as const
 
 export const PortalSwitcher = () => {
@@ -23,6 +23,7 @@ export const PortalSwitcher = () => {
               : 'text-slate-300 hover:bg-white/5 hover:text-[var(--text-primary)]'
           }`}
         >
+          <span className="mr-1.5">{item.icon}</span>
           {item.label}
         </button>
       ))}
