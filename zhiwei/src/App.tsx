@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { AppShell } from './components/layout/AppShell'
+import { PatientSupportRail } from './components/layout/PatientSupportRail'
 import { Sidebar, type SidebarItem } from './components/layout/Sidebar'
 import { DesktopOnlyScreen } from './pages/DesktopOnlyScreen'
 import { LoginScreen } from './pages/LoginScreen'
@@ -153,7 +154,10 @@ export const App = () => {
   const activePage = portalPages[portal]?.[page] ?? portalPages[portal]?.[items[0]?.id ?? '']
 
   return (
-    <AppShell sidebar={<Sidebar items={items} activeId={page} onSelect={setPage} />}>
+    <AppShell
+      sidebar={<Sidebar items={items} activeId={page} onSelect={setPage} />}
+      rightRail={portal === 'patient' ? <PatientSupportRail /> : undefined}
+    >
       {activePage}
     </AppShell>
   )
