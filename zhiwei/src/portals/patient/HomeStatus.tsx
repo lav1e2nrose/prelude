@@ -3,11 +3,14 @@ import { FalsePositiveFeedback } from '../../components/shared/FalsePositiveFeed
 import { MemorialModeBanner } from '../../components/shared/MemorialModeBanner'
 import { MockModeBanner } from '../../components/shared/MockModeBanner'
 import { useAlertsStore } from '../../store'
+import { useRealtimeStore } from '../../store'
 
 export const HomeStatus = () => {
   const alerts = useAlertsStore((state) => state.alerts)
   const createDemoAlert = useAlertsStore((state) => state.createDemoAlert)
   const markFalsePositive = useAlertsStore((state) => state.markFalsePositive)
+  const latestFrame = useRealtimeStore((state) => state.latestFrame)
+  const connectionStatus = useRealtimeStore((state) => state.connectionStatus)
   const latestAlert = alerts[0]
   const pendingAlerts = alerts.filter((alert) => !alert.acknowledged).length
 
@@ -34,10 +37,26 @@ export const HomeStatus = () => {
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-4">
           {[
-            { label: '母体心率', value: '86 bpm', hint: '稳定' },
-            { label: '胎心率', value: '142 bpm', hint: '正常' },
-            { label: '电极质量', value: '92%', hint: '良好' },
-            { label: '电池电量', value: '81%', hint: '可用 6h' }
+            {
+              label: '母体心率',
+              value: latestFrame ? `${latestFrame.maternalHR} bpm` : '--',
+              hint: latestFrame ? '实时' : '待连接'
+            },
+            {
+              label: '胎心率',
+              value: latestFrame?.fetalHR ? `${latestFrame.fetalHR} bpm` : '--',
+              hint: latestFrame?.fetalHR ? '实时' : '待连接'
+            },
+            {
+              label: '电极质量',
+              value: latestFrame ? `${latestFrame.electrodeQuality}%` : '--',
+              hint: latestFrame ? '实时' : '待连接'
+            },
+            {
+              label: '设备链路',
+              value: connectionStatus,
+              hint: connectionStatus === 'connected' || connectionStatus === 'mock' ? '稳定' : '检查连接'
+            }
           ].map((item) => (
             <div
               key={item.label}

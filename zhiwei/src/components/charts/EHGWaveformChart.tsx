@@ -1,4 +1,6 @@
-const waveformSeries = [
+import type { ProcessedFrame } from '../../types/signal'
+
+const fallbackSeries = [
   { id: 'ch1', color: 'var(--ehg-ch1)', values: [0.1, 0.24, 0.18, 0.3, 0.22, 0.4, 0.28, 0.36, 0.26, 0.2] },
   { id: 'ch2', color: 'var(--ehg-ch2)', values: [0.18, 0.2, 0.12, 0.26, 0.34, 0.28, 0.32, 0.24, 0.3, 0.22] },
   { id: 'ch3', color: 'var(--ehg-ch3)', values: [0.12, 0.18, 0.26, 0.2, 0.3, 0.34, 0.22, 0.28, 0.24, 0.2] },
@@ -18,14 +20,36 @@ const toPoints = (values: number[], width: number, height: number) => {
     .join(' ')
 }
 
-export const EHGWaveformChart = () => {
+interface EHGWaveformChartProps {
+  frames?: ProcessedFrame[]
+}
+
+const channels = ['ch1', 'ch2', 'ch3', 'ch4'] as const
+const channelColors: Record<(typeof channels)[number], string> = {
+  ch1: 'var(--ehg-ch1)',
+  ch2: 'var(--ehg-ch2)',
+  ch3: 'var(--ehg-ch3)',
+  ch4: 'var(--ehg-ch4)'
+}
+
+export const EHGWaveformChart = ({ frames = [] }: EHGWaveformChartProps) => {
   const width = 360
   const height = 140
+  const signalFrames = frames.slice(-120)
+  const waveformSeries =
+    signalFrames.length > 0
+      ? channels.map((channel, index) => ({
+          id: channel,
+          color: channelColors[channel],
+          values: signalFrames.map((frame) => frame.ehg[index] ?? frame.ehg[0] ?? 0)
+        }))
+      : fallbackSeries
+
   return (
     <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
       <div className="flex items-center justify-between">
         <div className="text-sm text-slate-300">EHG 实时波形</div>
-        <div className="text-xs text-slate-400">最近 60 秒</div>
+        <div className="text-xs text-slate-400">{signalFrames.length > 0 ? '实时流更新中' : '最近 60 秒'}</div>
       </div>
       <div className="mt-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)] p-3">
         <svg viewBox={`0 0 ${width} ${height}`} className="h-36 w-full">

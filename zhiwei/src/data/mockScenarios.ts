@@ -20,52 +20,52 @@ export const mockScenarios: MockScenarioDefinition[] = [
   },
   {
     id: 2,
-    code: 'scenario_contractions_rising',
-    label: '宫缩频率上升',
-    summary: '突出宫缩趋势抬升与风险解释联动，用于风险升级演示。',
+    code: 'scenario_braxton',
+    label: '频繁假性宫缩',
+    summary: '用于演示假性宫缩增多但整体风险仍可控的状态判断。',
     battery: '88%',
     electrodeQuality: '91%',
     connection: '采集中'
   },
   {
     id: 3,
-    code: 'scenario_electrode_loose',
-    label: '设备电极松动',
-    summary: '展示设备状态下降、信号质量提醒与用户纠正引导。',
-    battery: '84%',
-    electrodeQuality: '72%',
-    connection: '需校准'
+    code: 'scenario_preterm',
+    label: '早产先兆升级',
+    summary: '展示风险曲线逐步升高、家属提前介入与医生复核入口。',
+    battery: '85%',
+    electrodeQuality: '89%',
+    connection: '风险监测'
   },
   {
     id: 4,
-    code: 'scenario_fetal_movement_low',
-    label: '胎动减少',
-    summary: '适合演示多信号联合判断与患者侧的安抚式提示。',
-    battery: '86%',
-    electrodeQuality: '89%',
-    connection: '蓝牙稳定'
-  },
-  {
-    id: 5,
-    code: 'scenario_night_alert',
-    label: '夜间紧急预警',
-    summary: '用于展示升级提醒、家属联动与倒计时取消交互。',
-    battery: '76%',
-    electrodeQuality: '87%',
+    code: 'scenario_emergency',
+    label: '突发紧急状态',
+    summary: '用于演示红色紧急流程与倒计时呼叫范式。',
+    battery: '74%',
+    electrodeQuality: '86%',
     connection: '高优先级'
   },
   {
+    id: 5,
+    code: 'scenario_electrode_loose',
+    label: '电极脱落处理',
+    summary: '展示连接降级、设备提示与安全降级策略。',
+    battery: '79%',
+    electrodeQuality: '54%',
+    connection: '需校准'
+  },
+  {
     id: 6,
-    code: 'scenario_family_coordination',
-    label: '家属协作升级',
-    summary: '强调多人协同响应，避免重复赶往与信息黑洞。',
-    battery: '82%',
-    electrodeQuality: '90%',
-    connection: '协作同步'
+    code: 'scenario_fall',
+    label: '跌倒检测',
+    summary: '触发 IMU 异常与紧急确认链路，验证误报反馈机制。',
+    battery: '77%',
+    electrodeQuality: '81%',
+    connection: '姿态异常'
   },
   {
     id: 7,
-    code: 'scenario_family_flow',
+    code: 'scenario_multi_alert',
     label: '家属协作流',
     summary: '聚焦团队角色切换、状态透传与协作视角差异化。',
     battery: '81%',
