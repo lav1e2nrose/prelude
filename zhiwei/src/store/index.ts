@@ -33,4 +33,5 @@ export const useAppStore = create<AppState>((set) => ({
 export { useAlertsStore } from './alerts'
 export { useCollaborationStore } from './collaboration'
 export { useMemorialStore } from './memorial'
+export { usePatientJournalStore } from './patientJournal'
 export { useRealtimeStore } from './realtime'
