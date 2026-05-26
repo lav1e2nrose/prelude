@@ -125,8 +125,8 @@ export const MemorialModeBanner = ({
         confirmText={SENSITIVE_COPY.memorialMode.confirmPrimary}
         cancelText={SENSITIVE_COPY.memorialMode.confirmSecondary}
         onDismiss={() => {
-          suppressAllAlerts()
           enterMemorialMode('patient')
+          suppressAllAlerts()
           setIsDetailsExpanded(true)
           setConfirmMode(null)
         }}
