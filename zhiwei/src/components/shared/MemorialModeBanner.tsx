@@ -20,7 +20,7 @@ export const MemorialModeBanner = ({
   const setFutureReuse = useMemorialStore((state) => state.setFutureReuse)
   const suppressAllAlerts = useAlertsStore((state) => state.suppressAllAlerts)
   const [confirmMode, setConfirmMode] = useState<'enter' | 'exit' | null>(null)
-  const [detailsOpen, setDetailsOpen] = useState(defaultExpandedWhenEnabled)
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(defaultExpandedWhenEnabled)
 
   const undoText = useMemo(() => {
     if (!memorial.canUndoUntil) return null
@@ -63,14 +63,14 @@ export const MemorialModeBanner = ({
               <span>此账户处于静默模式</span>
               <button
                 type="button"
-                onClick={() => setDetailsOpen((prev) => !prev)}
+                onClick={() => setIsDetailsExpanded((prev) => !prev)}
                 className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-xs text-[var(--text-muted)]"
               >
-                {detailsOpen ? '收起' : '更改'}
+                {isDetailsExpanded ? '收起' : '更改'}
               </button>
             </div>
 
-            {detailsOpen ? (
+            {isDetailsExpanded ? (
               <div
                 className={
                   showCompactLayout
@@ -127,7 +127,7 @@ export const MemorialModeBanner = ({
         onDismiss={() => {
           suppressAllAlerts()
           enterMemorialMode('patient')
-          setDetailsOpen(true)
+          setIsDetailsExpanded(true)
           setConfirmMode(null)
         }}
         onCancel={() => setConfirmMode(null)}
