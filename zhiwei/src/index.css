@@ -23,6 +23,11 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+[data-memorial='true'] body {
+  filter: saturate(0.7);
+  --line-height-base: 1.85;
+}
+
 button,
 select,
 input,

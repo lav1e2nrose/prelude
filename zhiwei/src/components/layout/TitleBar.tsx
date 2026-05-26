@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getMockScenarioDefinition } from '../../data/mockScenarios'
 import { PortalSwitcher } from './PortalSwitcher'
-import { useAppStore } from '../../store'
+import { useAppStore, useRealtimeStore } from '../../store'
 
 export const TitleBar = () => {
   const desktop = window.zhiwei?.desktop
@@ -9,6 +9,10 @@ export const TitleBar = () => {
   const [now, setNow] = useState(() => new Date())
   const portal = useAppStore((state) => state.portal)
   const mockScenario = useAppStore((state) => state.mockScenario)
+  const dataSourceType = useRealtimeStore((state) => state.dataSourceType)
+  const connectionStatus = useRealtimeStore((state) => state.connectionStatus)
+  const latestFrame = useRealtimeStore((state) => state.latestFrame)
+  const sourceConfig = useRealtimeStore((state) => state.sourceConfig)
   const portalLabelMap = {
     patient: '孕妇端',
     guardian: '家属端',
@@ -16,6 +20,16 @@ export const TitleBar = () => {
   }
   const portalLabel = portalLabelMap[portal] ?? '未知'
   const scenario = getMockScenarioDefinition(mockScenario)
+  const sourceLabel =
+    dataSourceType === 'ble' ? '真实设备' : dataSourceType === 'websocket' ? '实时网关' : `Mock · ${scenario.label}`
+  const sourceDetail =
+    dataSourceType === 'ble'
+      ? latestFrame
+        ? `电量 ${Math.round(latestFrame.batteryLevel)}%`
+        : sourceConfig.ble.deviceId || '等待设备连接'
+      : dataSourceType === 'websocket'
+        ? sourceConfig.websocket.url
+        : `电量 ${latestFrame ? `${Math.round(latestFrame.batteryLevel)}%` : scenario.battery}`
 
   useEffect(() => {
     if (!desktop?.onWindowStateChange) return
@@ -58,7 +72,7 @@ export const TitleBar = () => {
         </div>
         <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
           <span className="mr-2 inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(74,222,128,0.8)]" />
-          {scenario.connection}
+          {sourceLabel}
         </div>
       </div>
       <div className="no-drag-region flex items-center gap-3">
@@ -69,13 +83,10 @@ export const TitleBar = () => {
           模式：{portalLabel}
         </div>
         <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
-          剧本：{scenario.label}
+          链路：{connectionStatus}
         </div>
         <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
-          电量 {scenario.battery}
-        </div>
-        <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
-          电极质量 {scenario.electrodeQuality}
+          {sourceDetail}
         </div>
         <PortalSwitcher />
         {desktop?.isDesktop ? (

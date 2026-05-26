@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useMemorialStore } from '../../store'
 import { TitleBar } from './TitleBar'
 
 interface AppShellProps {
@@ -8,10 +9,16 @@ interface AppShellProps {
 }
 
 export const AppShell = ({ sidebar, children, rightRail }: AppShellProps) => {
+  const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
+
   return (
     <div className="flex h-screen w-screen items-center justify-center overflow-hidden bg-[var(--bg-0)] text-[var(--text-primary)]">
-      <div className="pointer-events-none absolute -left-36 top-16 h-96 w-96 rounded-full bg-[var(--accent)]/12 blur-[130px]" />
-      <div className="pointer-events-none absolute -right-24 bottom-0 h-[28rem] w-[28rem] rounded-full bg-[var(--alert)]/10 blur-[140px]" />
+      {!memorialEnabled ? (
+        <>
+          <div className="pointer-events-none absolute -left-36 top-16 h-96 w-96 rounded-full bg-[var(--accent)]/12 blur-[130px]" />
+          <div className="pointer-events-none absolute -right-24 bottom-0 h-[28rem] w-[28rem] rounded-full bg-[var(--alert)]/10 blur-[140px]" />
+        </>
+      ) : null}
       <div className="relative flex h-full w-full flex-col overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-0)] shadow-[var(--shadow-card)]">
         <TitleBar />
         <div className="flex flex-1 overflow-hidden">

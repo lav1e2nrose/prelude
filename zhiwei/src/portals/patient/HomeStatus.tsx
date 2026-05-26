@@ -3,12 +3,13 @@ import { FalsePositiveFeedback } from '../../components/shared/FalsePositiveFeed
 import { MemorialModeBanner } from '../../components/shared/MemorialModeBanner'
 import { MockModeBanner } from '../../components/shared/MockModeBanner'
 import { StatusOrb } from '../../components/shared/StatusOrb'
-import { useAlertsStore, usePatientJournalStore, useRealtimeStore } from '../../store'
+import { useAlertsStore, useMemorialStore, usePatientJournalStore, useRealtimeStore } from '../../store'
 
 const formatDelta = (value: number) => (value > 0 ? `+${value.toFixed(1)}%` : `${value.toFixed(1)}%`)
 
 export const HomeStatus = () => {
   const [showProfessional, setShowProfessional] = useState(false)
+  const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
   const alerts = useAlertsStore((state) => state.alerts)
   const createDemoAlert = useAlertsStore((state) => state.createDemoAlert)
   const markFalsePositive = useAlertsStore((state) => state.markFalsePositive)
@@ -55,6 +56,22 @@ export const HomeStatus = () => {
         : latestFrame?.riskLevel === 'alert'
           ? '风险升高'
           : '紧急'
+
+  if (memorialEnabled) {
+    return (
+      <div className="space-y-6">
+        <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)]/95 p-6 shadow-[var(--shadow-card)]">
+          <MemorialModeBanner compactWhenEnabled />
+          <div className="flex min-h-[380px] items-center justify-center">
+            <div className="max-w-xl text-center">
+              <div className="text-3xl font-semibold text-[var(--text-primary)]">您好</div>
+              <p className="mt-4 text-sm leading-8 text-slate-400">如果您想做些什么，可以从左侧菜单进入。</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -196,7 +213,7 @@ export const HomeStatus = () => {
           </ul>
         </div>
         <MockModeBanner />
-        <MemorialModeBanner />
+        <MemorialModeBanner defaultExpandedWhenEnabled />
       </div>
     </div>
   )

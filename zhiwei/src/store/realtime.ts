@@ -80,7 +80,7 @@ const sourceDefaults: RealtimeSourceConfig = {
 }
 
 export const useRealtimeStore = create<RealtimeStore>((set, get) => ({
-  dataSourceType: 'mock',
+  dataSourceType: 'ble',
   connectionStatus: 'disconnected',
   frameBuffer: [],
   latestFrame: null,

@@ -3,7 +3,8 @@ import { BreathingCircle } from '../../components/charts/BreathingCircle'
 import { ContractionHeatmap } from '../../components/charts/ContractionHeatmap'
 import { EHGWaveformChart } from '../../components/charts/EHGWaveformChart'
 import { StatusOrb } from '../../components/shared/StatusOrb'
-import { useAppStore, usePatientJournalStore, useRealtimeStore } from '../../store'
+import { getMockScenarioDefinition, mockScenarios } from '../../data/mockScenarios'
+import { useAppStore, useMemorialStore, usePatientJournalStore, useRealtimeStore } from '../../store'
 
 const postureLabelMap: Record<string, string> = {
   standing: '站立',
@@ -25,6 +26,8 @@ export const LiveMonitor = () => {
   const [viewMode, setViewMode] = useState<'soft' | 'pro'>('soft')
   const [now, setNow] = useState(() => Date.now())
   const mockScenario = useAppStore((state) => state.mockScenario)
+  const setMockScenario = useAppStore((state) => state.setMockScenario)
+  const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
   const dataSourceType = useRealtimeStore((state) => state.dataSourceType)
   const setDataSourceType = useRealtimeStore((state) => state.setDataSourceType)
   const connectionStatus = useRealtimeStore((state) => state.connectionStatus)
@@ -75,6 +78,7 @@ export const LiveMonitor = () => {
   }, [activeMonitoringStartedAt, now])
 
   const isMonitoring = activeMonitoringStartedAt !== null
+  const currentMockScenario = getMockScenarioDefinition(mockScenario)
 
   const handleConnect = async () => {
     await connect()
@@ -85,7 +89,7 @@ export const LiveMonitor = () => {
   }
 
   const handleDisconnect = async () => {
-    if (isMonitoring && monitorDuration < 40 * 60) {
+    if (!memorialEnabled && isMonitoring && monitorDuration < 40 * 60) {
       const shouldStop = window.confirm(
         `本次监测仅 ${Math.round(monitorDuration / 60)} 分钟，建议至少 40 分钟。确定结束吗？`
       )
@@ -107,7 +111,7 @@ export const LiveMonitor = () => {
       <div className="space-y-4">
         <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm text-slate-300">实时监测</div>
+            <div className="text-sm text-slate-300">{memorialEnabled ? '手动查看数据' : '实时监测'}</div>
             <div className="flex rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] p-1 text-xs">
               <button
                 type="button"
@@ -132,7 +136,7 @@ export const LiveMonitor = () => {
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-3">
             <div className="text-sm text-slate-300">监测中 ● {formatDuration(monitorDuration)}</div>
-            <StatusOrb level={latestFrame?.riskLevel ?? 'attention'} label="实时风险状态" />
+            <StatusOrb level={latestFrame?.riskLevel ?? 'attention'} label={memorialEnabled ? '当前数据状态' : '实时风险状态'} />
           </div>
 
           {viewMode === 'soft' ? (
@@ -164,12 +168,12 @@ export const LiveMonitor = () => {
 
       <div className="space-y-4">
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
-          <div className="text-xs uppercase tracking-[0.3em] text-slate-400">实测接口</div>
+          <div className="text-xs uppercase tracking-[0.3em] text-slate-400">数据接入</div>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {[
-              { type: 'mock', label: 'Mock' },
-              { type: 'websocket', label: 'WebSocket' },
-              { type: 'ble', label: 'BLE' }
+              { type: 'ble', label: '真实设备' },
+              { type: 'websocket', label: '实时网关' },
+              { type: 'mock', label: 'Mock' }
             ].map((item) => (
               <button
                 key={item.type}
@@ -185,6 +189,23 @@ export const LiveMonitor = () => {
               </button>
             ))}
           </div>
+
+          {dataSourceType === 'mock' ? (
+            <div className="mt-3 space-y-2">
+              <select
+                value={mockScenario}
+                onChange={(event) => setMockScenario(Number(event.target.value))}
+                className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]"
+              >
+                {mockScenarios.map((scenario) => (
+                  <option key={scenario.code} value={scenario.id}>
+                    {scenario.label}
+                  </option>
+                ))}
+              </select>
+              <div className="text-xs text-slate-400">{currentMockScenario.summary}</div>
+            </div>
+          ) : null}
 
           {dataSourceType === 'websocket' ? (
             <div className="mt-3 space-y-2">
@@ -217,6 +238,12 @@ export const LiveMonitor = () => {
                 className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]"
                 placeholder="Service UUID（可选）"
               />
+              <input
+                value={sourceConfig.ble.characteristicUuid}
+                onChange={(event) => patchSourceConfig('ble', { characteristicUuid: event.target.value })}
+                className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]"
+                placeholder="Characteristic UUID（可选）"
+              />
             </div>
           ) : null}
 
@@ -236,16 +263,20 @@ export const LiveMonitor = () => {
               结束监测
             </button>
           </div>
-          <div className="mt-2 text-xs text-slate-400">
-            状态：{sourceStatusLabel[connectionStatus]}
-            {lastError ? ` · ${lastError}` : ''}
-          </div>
+          {memorialEnabled ? (
+            <div className="mt-2 text-xs text-slate-400">静默模式下不会主动显示连接提示或提醒。</div>
+          ) : (
+            <div className="mt-2 text-xs text-slate-400">
+              状态：{sourceStatusLabel[connectionStatus]}
+              {lastError ? ` · ${lastError}` : ''}
+            </div>
+          )}
         </div>
 
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-xs uppercase tracking-[0.3em] text-slate-400">实时摘要</div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <StatusOrb level={latestFrame?.riskLevel ?? 'attention'} label="实时风险状态" />
+            <StatusOrb level={latestFrame?.riskLevel ?? 'attention'} label={memorialEnabled ? '当前数据状态' : '实时风险状态'} />
             <div className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
               数据延迟 {lastFrameLatencyMs === null ? '--' : `${(lastFrameLatencyMs / 1000).toFixed(1)}s`}
             </div>
@@ -282,11 +313,13 @@ export const LiveMonitor = () => {
           </div>
         </div>
 
-        <BreathingCircle />
+        {!memorialEnabled ? <BreathingCircle /> : null}
 
-        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4 text-xs text-slate-300">
-          监测提示：若宫缩间隔持续缩短，可点击“宫缩记录”页面进行手动标记，便于医生复核。
-        </div>
+        {memorialEnabled ? null : (
+          <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4 text-xs text-slate-300">
+            监测提示：若宫缩间隔持续缩短，可点击“宫缩记录”页面进行手动标记，便于医生复核。
+          </div>
+        )}
       </div>
     </div>
   )

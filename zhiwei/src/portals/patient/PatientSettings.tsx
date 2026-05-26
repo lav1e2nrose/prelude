@@ -7,6 +7,7 @@ export const PatientSettings = () => {
   const dataSourceType = useRealtimeStore((state) => state.dataSourceType)
   const sourceConfig = useRealtimeStore((state) => state.sourceConfig)
   const patchSourceConfig = useRealtimeStore((state) => state.patchSourceConfig)
+  const setDataSourceType = useRealtimeStore((state) => state.setDataSourceType)
   const [dailySummary, setDailySummary] = useState(true)
   const [postureReminder, setPostureReminder] = useState(true)
   const [nightMode, setNightMode] = useState(false)
@@ -24,6 +25,11 @@ export const PatientSettings = () => {
       </div>
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="text-sm text-slate-300">通知与提醒</div>
+        {memorial.enabled ? (
+          <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 px-3 py-3 text-sm text-slate-400">
+            当前已暂停主动提醒与提示音。如需查看数据，请从左侧菜单手动进入。
+          </div>
+        ) : (
         <div className="mt-4 space-y-3 text-sm text-slate-300">
           <label className="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 px-3 py-2">
             <span>每日摘要推送</span>
@@ -38,10 +44,31 @@ export const PatientSettings = () => {
             <input type="checkbox" checked={nightMode} onChange={() => setNightMode((prev) => !prev)} />
           </label>
         </div>
+        )}
       </div>
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
-        <div className="text-sm text-slate-300">实测接口参数</div>
-        <div className="mt-2 text-xs text-slate-400">用于联调真实设备或实时网关。当前数据源：{dataSourceType}</div>
+        <div className="text-sm text-slate-300">数据接入</div>
+        <div className="mt-2 text-xs text-slate-400">用于接入真实设备、实时网关，或在需要时切换到 Mock 剧本。当前数据源：{dataSourceType}</div>
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {[
+            { type: 'ble', label: '真实设备' },
+            { type: 'websocket', label: '实时网关' },
+            { type: 'mock', label: 'Mock' }
+          ].map((item) => (
+            <button
+              key={item.type}
+              type="button"
+              onClick={() => setDataSourceType(item.type as 'mock' | 'websocket' | 'ble')}
+              className={`rounded-[var(--radius-control)] border px-3 py-2 text-xs transition ${
+                dataSourceType === item.type
+                  ? 'border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--text-primary)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--bg-2)] text-slate-300 hover:border-[var(--border-default)]'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
         {dataSourceType === 'websocket' ? (
           <div className="mt-3 space-y-2">
             <input
@@ -81,7 +108,7 @@ export const PatientSettings = () => {
           </div>
         ) : null}
       </div>
-      <MemorialModeBanner />
+      <MemorialModeBanner defaultExpandedWhenEnabled />
     </div>
   )
 }

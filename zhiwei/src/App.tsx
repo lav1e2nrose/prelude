@@ -26,7 +26,7 @@ import { HomeStatus } from './portals/patient/HomeStatus'
 import { LiveMonitor } from './portals/patient/LiveMonitor'
 import { PatientSettings } from './portals/patient/PatientSettings'
 import { PrenatalCalendar } from './portals/patient/PrenatalCalendar'
-import { type PortalType, useAppStore } from './store'
+import { type PortalType, useAppStore, useMemorialStore } from './store'
 
 const portalNav: Record<PortalType, SidebarItem[]> = {
   patient: [
@@ -93,6 +93,7 @@ export const App = () => {
   const page = useAppStore((state) => state.page)
   const setPage = useAppStore((state) => state.setPage)
   const loggedIn = useAppStore((state) => state.loggedIn)
+  const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
   const [runtimeReady, setRuntimeReady] = useState(() => Boolean(window.zhiwei?.desktop?.isDesktop))
   const isDesktop = Boolean(window.zhiwei?.desktop?.isDesktop)
 
@@ -122,11 +123,13 @@ export const App = () => {
   useEffect(() => {
     if (!runtimeReady || !isDesktop) {
       document.documentElement.setAttribute('data-theme', 'pro')
+      document.documentElement.setAttribute('data-memorial', 'false')
       return
     }
     const theme = portal === 'patient' ? 'warm' : 'pro'
     document.documentElement.setAttribute('data-theme', theme)
-  }, [isDesktop, portal, runtimeReady])
+    document.documentElement.setAttribute('data-memorial', memorialEnabled ? 'true' : 'false')
+  }, [isDesktop, memorialEnabled, portal, runtimeReady])
 
   if (!runtimeReady) {
     return (
@@ -156,7 +159,7 @@ export const App = () => {
   return (
     <AppShell
       sidebar={<Sidebar items={items} activeId={page} onSelect={setPage} />}
-      rightRail={portal === 'patient' ? <PatientSupportRail /> : undefined}
+      rightRail={portal === 'patient' && !memorialEnabled ? <PatientSupportRail /> : undefined}
     >
       {activePage}
     </AppShell>

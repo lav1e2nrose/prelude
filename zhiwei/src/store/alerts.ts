@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AlertEvent } from '../types/events'
+import { useMemorialStore } from './memorial'
 
 interface AlertsStore {
   alerts: AlertEvent[]
@@ -7,6 +8,7 @@ interface AlertsStore {
   addAlert: (alert: AlertEvent) => void
   createDemoAlert: (level: AlertEvent['level']) => void
   markFalsePositive: (alertId: string) => void
+  suppressAllAlerts: () => void
 }
 
 const initialAlerts: AlertEvent[] = [
@@ -36,9 +38,18 @@ export const useAlertsStore = create<AlertsStore>((set) => ({
         alert.id === alertId ? { ...alert, acknowledged: true } : alert
       )
     })),
-  addAlert: (alert) => set((state) => ({ alerts: [alert, ...state.alerts] })),
+  addAlert: (alert) =>
+    set((state) => {
+      if (useMemorialStore.getState().memorial.enabled) {
+        return state
+      }
+      return { alerts: [alert, ...state.alerts] }
+    }),
   createDemoAlert: (level) =>
     set((state) => {
+      if (useMemorialStore.getState().memorial.enabled) {
+        return state
+      }
       const summaryByLevel: Record<AlertEvent['level'], string> = {
         safe: '监测稳定，建议继续按计划观察',
         attention: '宫缩频率上升，请先卧床休息并观察 30 分钟',
@@ -67,5 +78,6 @@ export const useAlertsStore = create<AlertsStore>((set) => ({
             }
           : alert
       )
-    }))
+    })),
+  suppressAllAlerts: () => set(() => ({ alerts: [] }))
 }))
