@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { setMemorialModeEnabled, suppressAlertsForMemorialMode } from './memorialRuntime'
 import type { MemorialModeState } from '../types/memorial'
 
 const defaultPolicy = {
@@ -30,25 +31,32 @@ interface MemorialStore {
 export const useMemorialStore = create<MemorialStore>((set) => ({
   memorial: initialState,
   enterMemorialMode: (activatedBy) =>
-    set(({ memorial }) => ({
-      memorial: {
-        ...memorial,
-        enabled: true,
-        activatedAt: Date.now(),
-        activatedBy,
-        canUndoUntil: Date.now() + 7 * 24 * 60 * 60 * 1000
+    set(({ memorial }) => {
+      setMemorialModeEnabled(true)
+      suppressAlertsForMemorialMode()
+      return {
+        memorial: {
+          ...memorial,
+          enabled: true,
+          activatedAt: Date.now(),
+          activatedBy,
+          canUndoUntil: Date.now() + 7 * 24 * 60 * 60 * 1000
+        }
       }
-    })),
+    }),
   exitMemorialMode: () =>
-    set(({ memorial }) => ({
-      memorial: {
-        ...memorial,
-        enabled: false,
-        activatedAt: null,
-        activatedBy: null,
-        canUndoUntil: null
+    set(({ memorial }) => {
+      setMemorialModeEnabled(false)
+      return {
+        memorial: {
+          ...memorial,
+          enabled: false,
+          activatedAt: null,
+          activatedBy: null,
+          canUndoUntil: null
+        }
       }
-    })),
+    }),
   updateMemorialNote: (note) =>
     set(({ memorial }) => ({
       memorial: {

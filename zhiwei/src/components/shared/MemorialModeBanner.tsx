@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { SENSITIVE_COPY } from '../../i18n/sensitive-copy'
-import { useAlertsStore } from '../../store'
 import { useMemorialStore } from '../../store/memorial'
 import { EmergencyOverlay } from './EmergencyOverlay'
 
@@ -18,7 +17,6 @@ export const MemorialModeBanner = ({
   const exitMemorialMode = useMemorialStore((state) => state.exitMemorialMode)
   const updateMemorialNote = useMemorialStore((state) => state.updateMemorialNote)
   const setFutureReuse = useMemorialStore((state) => state.setFutureReuse)
-  const suppressAllAlerts = useAlertsStore((state) => state.suppressAllAlerts)
   const [confirmMode, setConfirmMode] = useState<'enter' | 'exit' | null>(null)
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(defaultExpandedWhenEnabled)
 
@@ -126,7 +124,6 @@ export const MemorialModeBanner = ({
         cancelText={SENSITIVE_COPY.memorialMode.confirmSecondary}
         onDismiss={() => {
           enterMemorialMode('patient')
-          suppressAllAlerts()
           setIsDetailsExpanded(true)
           setConfirmMode(null)
         }}

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { AlertEvent } from '../types/events'
-import { useMemorialStore } from './memorial'
+import { isMemorialModeEnabled, registerMemorialAlertSuppressor } from './memorialRuntime'
 
 interface AlertsStore {
   alerts: AlertEvent[]
@@ -39,13 +39,13 @@ export const useAlertsStore = create<AlertsStore>((set) => ({
       )
     })),
   addAlert: (alert) => {
-    if (useMemorialStore.getState().memorial.enabled) {
+    if (isMemorialModeEnabled()) {
       return
     }
     set((state) => ({ alerts: [alert, ...state.alerts] }))
   },
   createDemoAlert: (level) => {
-    if (useMemorialStore.getState().memorial.enabled) {
+    if (isMemorialModeEnabled()) {
       return
     }
     set((state) => {
@@ -81,3 +81,7 @@ export const useAlertsStore = create<AlertsStore>((set) => ({
     })),
   suppressAllAlerts: () => set(() => ({ alerts: [] }))
 }))
+
+registerMemorialAlertSuppressor(() => {
+  useAlertsStore.getState().suppressAllAlerts()
+})
