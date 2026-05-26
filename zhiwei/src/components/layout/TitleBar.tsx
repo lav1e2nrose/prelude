@@ -24,12 +24,12 @@ export const TitleBar = () => {
     dataSourceType === 'ble' ? '真实设备' : dataSourceType === 'websocket' ? '实时网关' : `Mock · ${scenario.label}`
   const sourceDetail =
     dataSourceType === 'ble'
-      ? latestFrame
+      ? latestFrame?.batteryLevel != null
         ? `电量 ${Math.round(latestFrame.batteryLevel)}%`
         : sourceConfig.ble.deviceId || '等待设备连接'
       : dataSourceType === 'websocket'
         ? sourceConfig.websocket.url
-        : `电量 ${latestFrame ? `${Math.round(latestFrame.batteryLevel)}%` : scenario.battery}`
+        : `电量 ${latestFrame?.batteryLevel != null ? `${Math.round(latestFrame.batteryLevel)}%` : scenario.battery}`
 
   useEffect(() => {
     if (!desktop?.onWindowStateChange) return
