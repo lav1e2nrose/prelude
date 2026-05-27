@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { mockScenarios } from '../../data/mockScenarios'
 import { useMemorialWorkflowStore, useRealtimeStore } from '../../store'
 
 export const DoctorSettings = () => {
@@ -105,6 +106,30 @@ export const DoctorSettings = () => {
               onChange={(event) => patchSourceConfig('ble', { characteristicUuid: event.target.value })}
               className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
               placeholder="特征 UUID"
+            />
+          </div>
+        ) : null}
+        {dataSourceType === 'mock' ? (
+          <div className="mt-3 space-y-2">
+            <select
+              value={sourceConfig.mock.scenario}
+              onChange={(event) => patchSourceConfig('mock', { scenario: event.target.value })}
+              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
+            >
+              {mockScenarios.map((scenario) => (
+                <option key={scenario.code} value={scenario.code}>
+                  {scenario.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min={200}
+              step={100}
+              value={sourceConfig.mock.intervalMs}
+              onChange={(event) => patchSourceConfig('mock', { intervalMs: Math.max(200, Number(event.target.value) || 1000) })}
+              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
+              placeholder="数据间隔（ms）"
             />
           </div>
         ) : null}

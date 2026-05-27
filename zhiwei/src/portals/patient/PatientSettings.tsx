@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { EmergencyOverlay } from '../../components/shared/EmergencyOverlay'
 import { MemorialModeBanner } from '../../components/shared/MemorialModeBanner'
+import { mockScenarios } from '../../data/mockScenarios'
 import { type AdverseOutcomeType } from '../../types/memorial'
 import { useMemorialStore, useMemorialWorkflowStore, useRealtimeStore } from '../../store'
+import { useCollaborationStore } from '../../store/collaboration'
 
 const outcomeOptions: Array<{ value: AdverseOutcomeType | 'skip'; label: string }> = [
   { value: 'skip', label: '不告诉系统发生了什么（跳过）' },
@@ -42,6 +44,7 @@ export const PatientSettings = () => {
   const recoverSoftDeletedData = useMemorialWorkflowStore((state) => state.recoverSoftDeletedData)
   const startNewPregnancy = useMemorialWorkflowStore((state) => state.startNewPregnancy)
   const requestSupportHelp = useMemorialWorkflowStore((state) => state.requestSupportHelp)
+  const primaryGuardianName = useCollaborationStore((state) => state.guardians.find((guardian) => guardian.isPrimaryContact)?.name ?? '未设置')
 
   const [dailySummary, setDailySummary] = useState(true)
   const [postureReminder, setPostureReminder] = useState(true)
@@ -70,7 +73,7 @@ export const PatientSettings = () => {
     <div className="space-y-6">
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="text-sm text-slate-300">账号设置</div>
-        <div className="mt-3 text-xs text-slate-400">主要联系人：陈先生</div>
+        <div className="mt-3 text-xs text-slate-400">主要联系人：{primaryGuardianName}</div>
         <div className="mt-2 text-xs text-slate-400">静默模式：{memorial.enabled ? '已开启' : '未开启'}</div>
         <div className="mt-2 text-xs text-slate-400">当前孕程：第 {pregnancyVersion} 次 · 模式 {currentPregnancyMode}</div>
         {patientVisibleNotice ? <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-slate-300">{patientVisibleNotice}</div> : null}
@@ -282,6 +285,30 @@ export const PatientSettings = () => {
               onChange={(event) => patchSourceConfig('ble', { characteristicUuid: event.target.value })}
               className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
               placeholder="特征 UUID"
+            />
+          </div>
+        ) : null}
+        {dataSourceType === 'mock' ? (
+          <div className="mt-3 space-y-2">
+            <select
+              value={sourceConfig.mock.scenario}
+              onChange={(event) => patchSourceConfig('mock', { scenario: event.target.value })}
+              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
+            >
+              {mockScenarios.map((scenario) => (
+                <option key={scenario.code} value={scenario.code}>
+                  {scenario.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min={200}
+              step={100}
+              value={sourceConfig.mock.intervalMs}
+              onChange={(event) => patchSourceConfig('mock', { intervalMs: Math.max(200, Number(event.target.value) || 1000) })}
+              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
+              placeholder="数据间隔（ms）"
             />
           </div>
         ) : null}

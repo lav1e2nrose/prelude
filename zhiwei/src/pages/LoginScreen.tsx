@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { type PortalType, useAppStore } from '../store'
 
 interface RoleCard {
@@ -37,21 +37,54 @@ const roleCards: RoleCard[] = [
   }
 ]
 
+const demoCredentials: Record<PortalType, { username: string; password: string }> = {
+  patient: { username: 'patient', password: 'patient123' },
+  guardian: { username: 'guardian', password: 'guardian123' },
+  doctor: { username: 'doctor', password: 'doctor123' }
+}
+
 export const LoginScreen = () => {
-  const setLoggedIn = useAppStore((state) => state.setLoggedIn)
+  const login = useAppStore((state) => state.login)
   const portal = useAppStore((state) => state.portal)
   const setPortal = useAppStore((state) => state.setPortal)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    const remembered = window.localStorage.getItem(`zhiwei.rememberedUsername.${portal}`)
+    if (remembered) {
+      setUsername(remembered)
+      setRememberMe(true)
+      return
+    }
+    setUsername('')
+  }, [portal])
+
   const handleLogin = () => {
-    if (!username.trim() || !password.trim()) {
+    const trimmedUsername = username.trim()
+    const trimmedPassword = password.trim()
+    if (!trimmedUsername || !trimmedPassword) {
       setError('请输入用户名和密码')
       return
     }
+
+    const expectedCredential = demoCredentials[portal]
+    if (trimmedUsername !== expectedCredential.username || trimmedPassword !== expectedCredential.password) {
+      setError('用户名或密码错误')
+      return
+    }
+
+    if (rememberMe) {
+      window.localStorage.setItem(`zhiwei.rememberedUsername.${portal}`, trimmedUsername)
+    } else {
+      window.localStorage.removeItem(`zhiwei.rememberedUsername.${portal}`)
+    }
+
     setError('')
-    setLoggedIn(true)
+    login({ username: trimmedUsername, displayName: trimmedUsername })
   }
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -113,7 +146,7 @@ export const LoginScreen = () => {
                 autoComplete="username"
               />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(event) => { setPassword(event.target.value); setError('') }}
                 onKeyDown={handleKeyDown}
@@ -121,7 +154,19 @@ export const LoginScreen = () => {
                 placeholder="密码"
                 autoComplete="current-password"
               />
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={rememberMe} onChange={() => setRememberMe((prev) => !prev)} />
+                  记住用户名
+                </label>
+                <button type="button" onClick={() => setShowPassword((prev) => !prev)} className="underline underline-offset-4">
+                  {showPassword ? '隐藏密码' : '显示密码'}
+                </button>
+              </div>
               {error ? <div className="text-xs text-rose-400">{error}</div> : null}
+              <div className="text-xs text-slate-500">
+                演示账号：{demoCredentials[portal].username} / {demoCredentials[portal].password}
+              </div>
             </div>
           </div>
           <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-2)]/85 p-5">

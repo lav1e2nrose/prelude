@@ -17,7 +17,7 @@ export const TitleBar = () => {
   }
   const portalLabel = portalLabelMap[portal] ?? '未知'
   const sourceLabel =
-    dataSourceType === 'ble' ? '真实设备' : dataSourceType === 'websocket' ? '实时网关' : 'Mock 模式'
+    dataSourceType === 'ble' ? '真实设备' : dataSourceType === 'websocket' ? '实时网关' : '示例数据'
   const sourceDetail =
     dataSourceType === 'ble'
       ? latestFrame?.batteryLevel != null

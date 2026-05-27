@@ -3,7 +3,6 @@ import { BLEAdapter } from '../data/adapters/BLEAdapter'
 import { MockAdapter } from '../data/adapters/MockAdapter'
 import { WebSocketAdapter } from '../data/adapters/WebSocketAdapter'
 import { SignalProcessor } from '../data/SignalProcessor'
-import { getMockScenarioDefinition } from '../data/mockScenarios'
 import type { IDataSource } from '../data/IDataSource'
 import type { ConnectionStatus } from '../data/IDataSource'
 import type { ProcessedFrame } from '../types/signal'
@@ -38,7 +37,6 @@ interface RealtimeStore {
   sourceConfig: RealtimeSourceConfig
   setDataSourceType: (dataSourceType: DataSourceType) => void
   patchSourceConfig: <T extends DataSourceType>(type: T, patch: Partial<RealtimeSourceConfig[T]>) => void
-  bindMockScenario: (scenarioId: number) => void
   connect: () => Promise<void>
   reconnect: () => Promise<void>
   disconnect: () => Promise<void>
@@ -99,18 +97,6 @@ export const useRealtimeStore = create<RealtimeStore>((set, get) => ({
         [type]: {
           ...state.sourceConfig[type],
           ...patch
-        }
-      }
-    }))
-  },
-  bindMockScenario: (scenarioId) => {
-    const scenario = getMockScenarioDefinition(scenarioId)
-    set((state) => ({
-      sourceConfig: {
-        ...state.sourceConfig,
-        mock: {
-          ...state.sourceConfig.mock,
-          scenario: scenario.code
         }
       }
     }))

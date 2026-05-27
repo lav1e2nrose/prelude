@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { mockScenarios } from '../../data/mockScenarios'
 import { useMemorialWorkflowStore } from '../../store'
 import { useCollaborationStore } from '../../store/collaboration'
 import { useRealtimeStore } from '../../store'
 
 export const GuardianSettings = () => {
   const guardians = useCollaborationStore((state) => state.guardians)
+  const primaryGuardianName = guardians.find((guardian) => guardian.isPrimaryContact)?.name ?? '主要联系人'
   const triggerGuardianInitiatedMemorial = useMemorialWorkflowStore((state) => state.triggerGuardianInitiatedMemorial)
   const guardianVisibleNotice = useMemorialWorkflowStore((state) => state.guardianVisibleNotice)
   const remoteGuardianSuppressedCount = useMemorialWorkflowStore((state) => state.remoteGuardianSuppressedCount)
@@ -27,7 +29,7 @@ export const GuardianSettings = () => {
         <p className="mt-3 text-xs text-slate-400">当患者暂时无法或不愿意自行操作时，您可以代为暂停所有提醒。</p>
         <button
           type="button"
-          onClick={() => triggerGuardianInitiatedMemorial('陈先生')}
+          onClick={() => triggerGuardianInitiatedMemorial(primaryGuardianName)}
           className="mt-4 rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-200"
         >
           代为操作记忆模式
@@ -137,6 +139,30 @@ export const GuardianSettings = () => {
               onChange={(event) => patchSourceConfig('ble', { characteristicUuid: event.target.value })}
               className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
               placeholder="特征 UUID"
+            />
+          </div>
+        ) : null}
+        {dataSourceType === 'mock' ? (
+          <div className="mt-3 space-y-2">
+            <select
+              value={sourceConfig.mock.scenario}
+              onChange={(event) => patchSourceConfig('mock', { scenario: event.target.value })}
+              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
+            >
+              {mockScenarios.map((scenario) => (
+                <option key={scenario.code} value={scenario.code}>
+                  {scenario.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min={200}
+              step={100}
+              value={sourceConfig.mock.intervalMs}
+              onChange={(event) => patchSourceConfig('mock', { intervalMs: Math.max(200, Number(event.target.value) || 1000) })}
+              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
+              placeholder="数据间隔（ms）"
             />
           </div>
         ) : null}
