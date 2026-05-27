@@ -205,7 +205,7 @@ export const LoginScreen = () => {
               onClick={() => setLoggedIn(true)}
               className="mt-5 w-full rounded-[var(--radius-control)] bg-[var(--accent)] px-4 py-3 text-sm font-medium text-white transition hover:brightness-110"
             >
-              {dataSourceType === 'mock' ? '以 Mock 剧本进入' : '连接真实数据后进入'}
+              {dataSourceType === 'mock' ? '以 Mock 剧本进入' : '进入工作台（可在监测页连接）'}
             </button>
           </div>
         </div>

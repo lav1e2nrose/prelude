@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { usePatientJournalStore, useRealtimeStore } from '../../store'
+import { useMemorialStore, useMemorialWorkflowStore, usePatientJournalStore, useRealtimeStore } from '../../store'
 
 const goal = 36
 
 export const FetalMovementCounter = () => {
+  const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
+  const historyAccessConfirmed = useMemorialWorkflowStore((state) => state.historyAccessConfirmed)
   const latestFrame = useRealtimeStore((state) => state.latestFrame)
   const movements = usePatientJournalStore((state) => state.fetalMovements)
   const addFetalMovement = usePatientJournalStore((state) => state.addFetalMovement)
@@ -70,8 +72,20 @@ export const FetalMovementCounter = () => {
   const currentHourCount = hourly.at(-1)?.value ?? 0
   const latest = todayMovements[0]
 
+  if (memorialEnabled && !historyAccessConfirmed) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-6">
+          <div className="text-sm text-slate-300">历史记录</div>
+          <div className="mt-3 text-sm text-slate-400">静默模式下默认不展示胎动统计。请在设置中确认后再手动查看历史数据。</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4 rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+      {memorialEnabled ? <div className="text-xs text-slate-400">当前为手动历史查看模式。</div> : null}
       <div className="text-sm text-slate-300">胎动计数</div>
       <div className="grid gap-4 xl:grid-cols-[1.1fr_1.4fr]">
         <div className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)]/80 p-4">

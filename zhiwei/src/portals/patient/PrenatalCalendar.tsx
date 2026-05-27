@@ -1,4 +1,4 @@
-import { useMemorialStore } from '../../store'
+import { useMemorialStore, useMemorialWorkflowStore } from '../../store'
 
 const schedule = [
   { date: 23, label: '产检复诊 · 血压评估' },
@@ -7,9 +7,10 @@ const schedule = [
 
 export const PrenatalCalendar = () => {
   const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
+  const historyAccessConfirmed = useMemorialWorkflowStore((state) => state.historyAccessConfirmed)
   const days = Array.from({ length: 30 }, (_, index) => index + 1)
 
-  if (memorialEnabled) {
+  if (memorialEnabled && !historyAccessConfirmed) {
     return (
       <div className="space-y-4">
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-6">
@@ -24,6 +25,11 @@ export const PrenatalCalendar = () => {
 
   return (
     <div className="space-y-4">
+      {memorialEnabled ? (
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4 text-xs text-slate-400">
+          当前为手动历史查看模式。界面已保持静默视觉，不展示期待性字段。
+        </div>
+      ) : null}
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="flex items-center justify-between">
           <div className="text-sm text-slate-300">产检日历</div>

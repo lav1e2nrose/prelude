@@ -3,13 +3,17 @@ import { FalsePositiveFeedback } from '../../components/shared/FalsePositiveFeed
 import { MemorialModeBanner } from '../../components/shared/MemorialModeBanner'
 import { MockModeBanner } from '../../components/shared/MockModeBanner'
 import { StatusOrb } from '../../components/shared/StatusOrb'
-import { useAlertsStore, useMemorialStore, usePatientJournalStore, useRealtimeStore } from '../../store'
+import { useAlertsStore, useMemorialStore, useMemorialWorkflowStore, usePatientJournalStore, useRealtimeStore } from '../../store'
 
 const formatDelta = (value: number) => (value > 0 ? `+${value.toFixed(1)}%` : `${value.toFixed(1)}%`)
 
 export const HomeStatus = () => {
   const [showProfessional, setShowProfessional] = useState(false)
   const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
+  const patientVisibleNotice = useMemorialWorkflowStore((state) => state.patientVisibleNotice)
+  const patientDelegationPendingChoice = useMemorialWorkflowStore((state) => state.patientDelegationPendingChoice)
+  const resolveGuardianDelegation = useMemorialWorkflowStore((state) => state.resolveGuardianDelegation)
+  const requestSupportHelp = useMemorialWorkflowStore((state) => state.requestSupportHelp)
   const alerts = useAlertsStore((state) => state.alerts)
   const createDemoAlert = useAlertsStore((state) => state.createDemoAlert)
   const markFalsePositive = useAlertsStore((state) => state.markFalsePositive)
@@ -66,6 +70,37 @@ export const HomeStatus = () => {
             <div className="max-w-xl text-center">
               <div className="text-3xl font-semibold text-[var(--text-primary)]">您好</div>
               <p className="mt-4 text-sm leading-8 text-slate-400">如果您想做些什么，可以从左侧菜单进入。</p>
+              {patientVisibleNotice ? (
+                <div className="mt-5 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-3 text-left text-sm text-slate-300">
+                  {patientVisibleNotice}
+                </div>
+              ) : null}
+              {patientDelegationPendingChoice ? (
+                <div className="mt-4 space-y-2 text-left">
+                  <button
+                    type="button"
+                    onClick={() => resolveGuardianDelegation('keep_pause')}
+                    className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-sm text-slate-200"
+                  >
+                    继续保持暂停状态
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => resolveGuardianDelegation('self_decide')}
+                    className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-sm text-slate-300"
+                  >
+                    我想自己决定该怎么处理
+                  </button>
+                  <div className="text-xs text-slate-500">无论您选择什么，都不会有人收到通知。</div>
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={requestSupportHelp}
+                className="mt-6 text-xs text-[var(--text-muted)] underline underline-offset-4"
+              >
+                需要帮助？联系我们 →
+              </button>
             </div>
           </div>
         </section>
@@ -215,6 +250,15 @@ export const HomeStatus = () => {
         <MockModeBanner />
         <MemorialModeBanner defaultExpandedWhenEnabled />
       </div>
+      <footer className="pt-2">
+        <button
+          type="button"
+          onClick={requestSupportHelp}
+          className="text-xs text-[var(--text-muted)] underline underline-offset-4"
+        >
+          需要帮助？联系我们 →
+        </button>
+      </footer>
     </div>
   )
 }

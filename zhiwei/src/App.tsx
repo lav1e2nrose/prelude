@@ -26,7 +26,9 @@ import { HomeStatus } from './portals/patient/HomeStatus'
 import { LiveMonitor } from './portals/patient/LiveMonitor'
 import { PatientSettings } from './portals/patient/PatientSettings'
 import { PrenatalCalendar } from './portals/patient/PrenatalCalendar'
-import { type PortalType, useAppStore, useMemorialStore } from './store'
+import { type PortalType, useAppStore, useMemorialStore, useMemorialWorkflowStore } from './store'
+
+const RETENTION_CHECK_INTERVAL_MS = 30 * 1000
 
 const portalNav: Record<PortalType, SidebarItem[]> = {
   patient: [
@@ -94,6 +96,7 @@ export const App = () => {
   const setPage = useAppStore((state) => state.setPage)
   const loggedIn = useAppStore((state) => state.loggedIn)
   const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
+  const processRetentionDeadline = useMemorialWorkflowStore((state) => state.processRetentionDeadline)
   const [runtimeReady, setRuntimeReady] = useState(() => Boolean(window.zhiwei?.desktop?.isDesktop))
   const isDesktop = Boolean(window.zhiwei?.desktop?.isDesktop)
 
@@ -119,6 +122,14 @@ export const App = () => {
       window.clearTimeout(timeoutId)
     }
   }, [])
+
+  useEffect(() => {
+    processRetentionDeadline()
+    const timer = window.setInterval(() => {
+      processRetentionDeadline()
+    }, RETENTION_CHECK_INTERVAL_MS)
+    return () => window.clearInterval(timer)
+  }, [processRetentionDeadline])
 
   useEffect(() => {
     if (!runtimeReady || !isDesktop) {

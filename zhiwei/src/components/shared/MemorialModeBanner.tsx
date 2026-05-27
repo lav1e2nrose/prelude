@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { SENSITIVE_COPY } from '../../i18n/sensitive-copy'
+import { useMemorialWorkflowStore } from '../../store'
 import { useMemorialStore } from '../../store/memorial'
 import { EmergencyOverlay } from './EmergencyOverlay'
 
@@ -13,8 +14,9 @@ export const MemorialModeBanner = ({
   defaultExpandedWhenEnabled = false
 }: MemorialModeBannerProps) => {
   const memorial = useMemorialStore((state) => state.memorial)
-  const enterMemorialMode = useMemorialStore((state) => state.enterMemorialMode)
   const exitMemorialMode = useMemorialStore((state) => state.exitMemorialMode)
+  const triggerPatientInitiatedMemorial = useMemorialWorkflowStore((state) => state.triggerPatientInitiatedMemorial)
+  const markManualMemorialExit = useMemorialWorkflowStore((state) => state.markManualMemorialExit)
   const updateMemorialNote = useMemorialStore((state) => state.updateMemorialNote)
   const setFutureReuse = useMemorialStore((state) => state.setFutureReuse)
   const [confirmMode, setConfirmMode] = useState<'enter' | 'exit' | null>(null)
@@ -123,7 +125,7 @@ export const MemorialModeBanner = ({
         confirmText={SENSITIVE_COPY.memorialMode.confirmPrimary}
         cancelText={SENSITIVE_COPY.memorialMode.confirmSecondary}
         onDismiss={() => {
-          enterMemorialMode('patient')
+          triggerPatientInitiatedMemorial('pause_keep_data', null)
           setIsDetailsExpanded(true)
           setConfirmMode(null)
         }}
@@ -137,6 +139,7 @@ export const MemorialModeBanner = ({
         cancelText={SENSITIVE_COPY.memorialMode.revokeSecondary}
         onDismiss={() => {
           exitMemorialMode()
+          markManualMemorialExit()
           setConfirmMode(null)
         }}
         onCancel={() => setConfirmMode(null)}
