@@ -44,7 +44,7 @@ export const PatientSettings = () => {
   const recoverSoftDeletedData = useMemorialWorkflowStore((state) => state.recoverSoftDeletedData)
   const startNewPregnancy = useMemorialWorkflowStore((state) => state.startNewPregnancy)
   const requestSupportHelp = useMemorialWorkflowStore((state) => state.requestSupportHelp)
-  const primaryGuardianName = useCollaborationStore((state) => state.guardians.find((guardian) => guardian.isPrimaryContact)?.name ?? '未设置')
+  const primaryContactName = useCollaborationStore((state) => state.guardians.find((guardian) => guardian.isPrimaryContact)?.name ?? '未设置')
 
   const [dailySummary, setDailySummary] = useState(true)
   const [postureReminder, setPostureReminder] = useState(true)
@@ -73,7 +73,7 @@ export const PatientSettings = () => {
     <div className="space-y-6">
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="text-sm text-slate-300">账号设置</div>
-        <div className="mt-3 text-xs text-slate-400">主要联系人：{primaryGuardianName}</div>
+        <div className="mt-3 text-xs text-slate-400">主要联系人：{primaryContactName}</div>
         <div className="mt-2 text-xs text-slate-400">静默模式：{memorial.enabled ? '已开启' : '未开启'}</div>
         <div className="mt-2 text-xs text-slate-400">当前孕程：第 {pregnancyVersion} 次 · 模式 {currentPregnancyMode}</div>
         {patientVisibleNotice ? <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-slate-300">{patientVisibleNotice}</div> : null}

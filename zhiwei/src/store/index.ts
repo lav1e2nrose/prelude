@@ -14,7 +14,6 @@ export interface AppState {
   userProfile: UserProfile | null
   setPortal: (portal: PortalType) => void
   setPage: (page: string) => void
-  setLoggedIn: (loggedIn: boolean) => void
   login: (userProfile: UserProfile) => void
   logout: () => void
 }
@@ -33,7 +32,6 @@ export const useAppStore = create<AppState>((set) => ({
   setPortal: (portal) =>
     set((state) => (state.loggedIn ? state : { portal, page: defaultPageByPortal[portal] })),
   setPage: (page) => set(() => ({ page })),
-  setLoggedIn: (loggedIn) => set((state) => ({ loggedIn, userProfile: loggedIn ? state.userProfile : null })),
   login: (userProfile) => set(() => ({ loggedIn: true, userProfile })),
   logout: () => set(() => ({ loggedIn: false, userProfile: null }))
 }))

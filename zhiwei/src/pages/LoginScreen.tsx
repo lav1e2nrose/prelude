@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { type PortalType, useAppStore } from '../store'
 
 interface RoleCard {
@@ -43,25 +43,30 @@ const demoCredentials: Record<PortalType, { username: string; password: string }
   doctor: { username: 'doctor', password: 'doctor123' }
 }
 
+const defaultDisplayNameByPortal: Record<PortalType, string> = {
+  patient: '孕妇用户',
+  guardian: '家属用户',
+  doctor: '医生用户'
+}
+
 export const LoginScreen = () => {
   const login = useAppStore((state) => state.login)
   const portal = useAppStore((state) => state.portal)
   const setPortal = useAppStore((state) => state.setPortal)
-  const [username, setUsername] = useState('')
+  const [username, setUsername] = useState(() => window.localStorage.getItem(`zhiwei.rememberedUsername.${portal}`) ?? '')
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(true)
+  const [rememberMe, setRememberMe] = useState(() => Boolean(window.localStorage.getItem(`zhiwei.rememberedUsername.${portal}`)))
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    const remembered = window.localStorage.getItem(`zhiwei.rememberedUsername.${portal}`)
-    if (remembered) {
-      setUsername(remembered)
-      setRememberMe(true)
-      return
-    }
-    setUsername('')
-  }, [portal])
+  const handlePortalChange = (selectedPortal: PortalType) => {
+    setPortal(selectedPortal)
+    const remembered = window.localStorage.getItem(`zhiwei.rememberedUsername.${selectedPortal}`)
+    setUsername(remembered ?? '')
+    setRememberMe(Boolean(remembered))
+    setPassword('')
+    setError('')
+  }
 
   const handleLogin = () => {
     const trimmedUsername = username.trim()
@@ -84,7 +89,8 @@ export const LoginScreen = () => {
     }
 
     setError('')
-    login({ username: trimmedUsername, displayName: trimmedUsername })
+    const displayName = defaultDisplayNameByPortal[portal]
+    login({ username: trimmedUsername, displayName })
   }
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -108,7 +114,7 @@ export const LoginScreen = () => {
               <button
                 key={card.id}
                 type="button"
-                onClick={() => setPortal(card.id)}
+                onClick={() => handlePortalChange(card.id)}
                 className={`group rounded-[var(--radius-card)] border p-5 text-left transition ${
                   active
                     ? 'border-[var(--accent)] bg-[var(--accent-dim)] shadow-[0_16px_40px_rgba(0,0,0,0.28)] -translate-y-1'

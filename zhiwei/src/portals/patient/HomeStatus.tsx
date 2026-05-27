@@ -14,7 +14,6 @@ export const HomeStatus = () => {
   const resolveGuardianDelegation = useMemorialWorkflowStore((state) => state.resolveGuardianDelegation)
   const requestSupportHelp = useMemorialWorkflowStore((state) => state.requestSupportHelp)
   const alerts = useAlertsStore((state) => state.alerts)
-  const createDemoAlert = useAlertsStore((state) => state.createDemoAlert)
   const markFalsePositive = useAlertsStore((state) => state.markFalsePositive)
   const latestFrame = useRealtimeStore((state) => state.latestFrame)
   const frameBuffer = useRealtimeStore((state) => state.frameBuffer)
@@ -169,8 +168,8 @@ export const HomeStatus = () => {
           <button
             type="button"
             onClick={() => {
-              createDemoAlert('attention')
-              addTimelineEvent('提醒复核', '发起一次人工复核提醒')
+              requestSupportHelp()
+              addTimelineEvent('联系支持', '用户主动发起一次人工复核请求')
             }}
             className="min-h-[52px] rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-2 text-sm text-slate-200 transition hover:border-[var(--border-default)]"
           >
