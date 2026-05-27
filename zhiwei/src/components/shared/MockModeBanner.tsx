@@ -1,10 +1,15 @@
-import { useAppStore } from '../../store'
+import { useAppStore, useRealtimeStore } from '../../store'
 import { getMockScenarioDefinition, mockScenarios } from '../../data/mockScenarios'
 
 export const MockModeBanner = () => {
   const mockScenario = useAppStore((state) => state.mockScenario)
   const setMockScenario = useAppStore((state) => state.setMockScenario)
+  const dataSourceType = useRealtimeStore((state) => state.dataSourceType)
   const scenario = getMockScenarioDefinition(mockScenario)
+
+  if (dataSourceType !== 'mock') {
+    return null
+  }
 
   return (
     <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-2)] p-4">

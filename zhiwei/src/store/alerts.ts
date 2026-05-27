@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AlertEvent } from '../types/events'
+import { isMemorialModeEnabled, registerMemorialAlertSuppressor } from './memorialRuntime'
 
 interface AlertsStore {
   alerts: AlertEvent[]
@@ -7,6 +8,7 @@ interface AlertsStore {
   addAlert: (alert: AlertEvent) => void
   createDemoAlert: (level: AlertEvent['level']) => void
   markFalsePositive: (alertId: string) => void
+  suppressAllAlerts: () => void
 }
 
 const initialAlerts: AlertEvent[] = [
@@ -36,8 +38,16 @@ export const useAlertsStore = create<AlertsStore>((set) => ({
         alert.id === alertId ? { ...alert, acknowledged: true } : alert
       )
     })),
-  addAlert: (alert) => set((state) => ({ alerts: [alert, ...state.alerts] })),
-  createDemoAlert: (level) =>
+  addAlert: (alert) => {
+    if (isMemorialModeEnabled()) {
+      return
+    }
+    set((state) => ({ alerts: [alert, ...state.alerts] }))
+  },
+  createDemoAlert: (level) => {
+    if (isMemorialModeEnabled()) {
+      return
+    }
     set((state) => {
       const summaryByLevel: Record<AlertEvent['level'], string> = {
         safe: '监测稳定，建议继续按计划观察',
@@ -55,7 +65,8 @@ export const useAlertsStore = create<AlertsStore>((set) => ({
         acknowledged: false
       }
       return { alerts: [nextAlert, ...state.alerts] }
-    }),
+    })
+  },
   markFalsePositive: (alertId) =>
     set((state) => ({
       alerts: state.alerts.map((alert) =>
@@ -67,5 +78,10 @@ export const useAlertsStore = create<AlertsStore>((set) => ({
             }
           : alert
       )
-    }))
+    })),
+  suppressAllAlerts: () => set(() => ({ alerts: [] }))
 }))
+
+registerMemorialAlertSuppressor(() => {
+  useAlertsStore.getState().suppressAllAlerts()
+})

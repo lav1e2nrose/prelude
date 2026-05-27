@@ -1,7 +1,9 @@
 import { useAlertsStore } from '../../store/alerts'
+import { useMemorialStore } from '../../store'
 import { AlertToast } from '../../components/shared/AlertToast'
 
 export const AlertHistory = () => {
+  const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
   const alerts = useAlertsStore((state) => state.alerts)
   const acknowledgeAlert = useAlertsStore((state) => state.acknowledgeAlert)
   const pendingCount = alerts.filter((item) => !item.acknowledged).length
@@ -9,7 +11,7 @@ export const AlertHistory = () => {
   return (
     <div className="space-y-4">
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
-        <div className="text-sm text-slate-300">预警历史</div>
+        <div className="text-sm text-slate-300">{memorialEnabled ? '历史记录' : '预警历史'}</div>
         <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">{alerts.length} 条</div>
         <div className="mt-1 text-xs text-slate-400">待处理 {pendingCount} 条</div>
       </div>

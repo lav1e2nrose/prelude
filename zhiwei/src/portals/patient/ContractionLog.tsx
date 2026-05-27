@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FalsePositiveFeedback } from '../../components/shared/FalsePositiveFeedback'
-import { usePatientJournalStore } from '../../store'
+import { useMemorialStore, useMemorialWorkflowStore, usePatientJournalStore } from '../../store'
 
 const intensityColor: Record<string, string> = {
   轻度: 'bg-emerald-500/20 text-emerald-200',
@@ -10,6 +10,8 @@ const intensityColor: Record<string, string> = {
 }
 
 export const ContractionLog = () => {
+  const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
+  const historyAccessConfirmed = useMemorialWorkflowStore((state) => state.historyAccessConfirmed)
   const logs = usePatientJournalStore((state) => state.contractions)
   const addContraction = usePatientJournalStore((state) => state.addContraction)
   const markContractionFalsePositive = usePatientJournalStore((state) => state.markContractionFalsePositive)
@@ -52,8 +54,24 @@ export const ContractionLog = () => {
 
   const selectedLog = selectedDayLogs.find((item) => item.id === selectedLogId) ?? selectedDayLogs.at(-1) ?? null
 
+  if (memorialEnabled && !historyAccessConfirmed) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-6">
+          <div className="text-sm text-slate-300">历史记录</div>
+          <div className="mt-3 text-sm text-slate-400">静默模式下默认隐藏宫缩详情。请在设置中手动确认“查看历史数据”后访问。</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
+      {memorialEnabled ? (
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4 text-xs text-slate-400">
+          已进入手动历史查看模式，不展示期待性字段与导出快捷入口。
+        </div>
+      ) : null}
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="text-sm text-slate-300">今日宫缩记录</div>
         <div className="mt-3 grid gap-3 md:grid-cols-3">

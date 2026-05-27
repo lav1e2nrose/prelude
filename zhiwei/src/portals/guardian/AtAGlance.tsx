@@ -1,8 +1,12 @@
 import { StatusOrb } from '../../components/shared/StatusOrb'
+import { useMemorialStore, useMemorialWorkflowStore } from '../../store'
 import { useAlertsStore } from '../../store/alerts'
 import { useCollaborationStore } from '../../store/collaboration'
 
 export const AtAGlance = () => {
+  const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
+  const guardianVisibleNotice = useMemorialWorkflowStore((state) => state.guardianVisibleNotice)
+  const remoteGuardianSuppressedCount = useMemorialWorkflowStore((state) => state.remoteGuardianSuppressedCount)
   const alerts = useAlertsStore((state) => state.alerts)
   const latestAlert = alerts[0]
   const pending = alerts.filter((alert) => !alert.acknowledged).length
@@ -17,10 +21,10 @@ export const AtAGlance = () => {
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-xs uppercase tracking-[0.3em] text-slate-400">实时风险</div>
           <div className="mt-3">
-            <StatusOrb level={latestAlert?.level ?? 'attention'} label="孕妇状态" />
+            <StatusOrb level={latestAlert?.level ?? 'attention'} label={memorialEnabled ? '账户状态' : '孕妇状态'} />
           </div>
           <div className="mt-3 text-xs text-slate-400">
-            待处理预警 {pending} 条 · 最近更新 {latestAlert ? '刚刚' : '暂无'}
+            {memorialEnabled ? '当前不接收主动提醒。' : `待处理预警 ${pending} 条 · 最近更新 ${latestAlert ? '刚刚' : '暂无'}`}
           </div>
         </div>
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
@@ -56,8 +60,12 @@ export const AtAGlance = () => {
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="text-xs uppercase tracking-[0.3em] text-slate-400">近期提醒</div>
         <div className="mt-3 text-sm text-slate-300">
-          今日 18:00 需提醒患者完成呼吸训练，并确认晚间状态已发送给医生。
+          {memorialEnabled ? '静默模式下已停止主动提醒。' : '今日 18:00 需提醒患者完成呼吸训练，并确认晚间状态已发送给医生。'}
         </div>
+        {guardianVisibleNotice ? <div className="mt-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-slate-400">{guardianVisibleNotice}</div> : null}
+        {remoteGuardianSuppressedCount > 0 ? (
+          <div className="mt-2 text-xs text-slate-500">异地家属 {remoteGuardianSuppressedCount} 人按信息隔离协议未收到主动通知。</div>
+        ) : null}
       </div>
     </div>
   )
