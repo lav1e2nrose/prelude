@@ -8,9 +8,9 @@ import type { AdverseOutcomeType } from '../../types/memorial'
 import type { EHGFrame } from '../../types/signal'
 
 const basePatients = [
-  { id: 'P-001', name: '林婉', week: '26+4', level: 'attention' as const, status: 'monitoring' as const },
-  { id: 'P-002', name: '小雅', week: '32+3', level: 'alert' as const, status: 'monitoring' as const },
-  { id: 'P-003', name: '张宁', week: '35+1', level: 'safe' as const, status: 'monitoring' as const }
+  { id: 'P-001', name: '患者 A', week: '26+4', level: 'attention' as const, status: 'monitoring' as const },
+  { id: 'P-002', name: '患者 B', week: '32+3', level: 'alert' as const, status: 'monitoring' as const },
+  { id: 'P-003', name: '患者 C', week: '35+1', level: 'safe' as const, status: 'monitoring' as const }
 ]
 
 const explainabilityEngine = new ExplainabilityEngine()

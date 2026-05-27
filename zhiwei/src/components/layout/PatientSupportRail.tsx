@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getMockScenarioDefinition } from '../../data/mockScenarios'
-import { useAppStore, usePatientJournalStore, useRealtimeStore } from '../../store'
+import { usePatientJournalStore, useRealtimeStore } from '../../store'
 
 const formatDuration = (seconds: number) => {
   const hour = Math.floor(seconds / 3600)
@@ -11,7 +10,6 @@ const formatDuration = (seconds: number) => {
 
 export const PatientSupportRail = () => {
   const [now, setNow] = useState(() => Date.now())
-  const mockScenario = useAppStore((state) => state.mockScenario)
   const latestFrame = useRealtimeStore((state) => state.latestFrame)
   const connectionStatus = useRealtimeStore((state) => state.connectionStatus)
   const activeMonitoringStartedAt = usePatientJournalStore((state) => state.activeMonitoringStartedAt)
@@ -20,7 +18,6 @@ export const PatientSupportRail = () => {
   const fetalMovements = usePatientJournalStore((state) => state.fetalMovements)
   const timeline = usePatientJournalStore((state) => state.timeline)
 
-  const scenario = getMockScenarioDefinition(mockScenario)
   useEffect(() => {
     const timer = window.setInterval(() => {
       setNow(Date.now())
@@ -40,8 +37,8 @@ export const PatientSupportRail = () => {
       .reduce((sum, item) => sum + item.durationSec, 0) +
     (activeMonitoringStartedAt ? Math.max(0, Math.round((now - activeMonitoringStartedAt) / 1000)) : 0)
 
-  const batteryLabel = latestFrame ? `${Math.round(latestFrame.batteryLevel)}%` : scenario.battery
-  const electrodeLabel = latestFrame ? `${Math.round(latestFrame.electrodeQuality)}%` : scenario.electrodeQuality
+  const batteryLabel = latestFrame ? `${Math.round(latestFrame.batteryLevel)}%` : '--'
+  const electrodeLabel = latestFrame ? `${Math.round(latestFrame.electrodeQuality)}%` : '--'
   const recentTimeline = timeline.slice(0, 8)
 
   return (

@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
 import { FalsePositiveFeedback } from '../../components/shared/FalsePositiveFeedback'
 import { MemorialModeBanner } from '../../components/shared/MemorialModeBanner'
-import { MockModeBanner } from '../../components/shared/MockModeBanner'
 import { StatusOrb } from '../../components/shared/StatusOrb'
-import { useAlertsStore, useMemorialStore, useMemorialWorkflowStore, usePatientJournalStore, useRealtimeStore } from '../../store'
+import { useAlertsStore, useAppStore, useMemorialStore, useMemorialWorkflowStore, usePatientJournalStore, useRealtimeStore } from '../../store'
 
 const formatDelta = (value: number) => (value > 0 ? `+${value.toFixed(1)}%` : `${value.toFixed(1)}%`)
 
@@ -15,7 +14,6 @@ export const HomeStatus = () => {
   const resolveGuardianDelegation = useMemorialWorkflowStore((state) => state.resolveGuardianDelegation)
   const requestSupportHelp = useMemorialWorkflowStore((state) => state.requestSupportHelp)
   const alerts = useAlertsStore((state) => state.alerts)
-  const createDemoAlert = useAlertsStore((state) => state.createDemoAlert)
   const markFalsePositive = useAlertsStore((state) => state.markFalsePositive)
   const latestFrame = useRealtimeStore((state) => state.latestFrame)
   const frameBuffer = useRealtimeStore((state) => state.frameBuffer)
@@ -25,6 +23,7 @@ export const HomeStatus = () => {
   const addTimelineEvent = usePatientJournalStore((state) => state.addTimelineEvent)
   const latestAlert = alerts[0]
   const pendingAlerts = alerts.filter((alert) => !alert.acknowledged).length
+  const displayName = useAppStore((state) => state.userProfile?.displayName ?? '用户')
 
   const startOfDay = useMemo(() => {
     const now = new Date()
@@ -114,7 +113,7 @@ export const HomeStatus = () => {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-[0.3em] text-slate-400">首页状态</div>
-            <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">上午好，小雅</div>
+            <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">上午好，{displayName}</div>
             <p className="mt-2 text-sm text-slate-300">孕 32 周 + 3 天 · 距离预产期还有 7 周 + 4 天</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
               <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1">
@@ -156,27 +155,7 @@ export const HomeStatus = () => {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <button
-            type="button"
-            onClick={() => {
-              createDemoAlert('attention')
-              addTimelineEvent('风险提醒', '触发轻度预警演示')
-            }}
-            className="min-h-[52px] rounded-[var(--radius-control)] border border-amber-300/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-100 transition hover:bg-amber-500/15"
-          >
-            模拟轻度预警
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              createDemoAlert('alert')
-              addTimelineEvent('风险提醒', '触发高风险预警演示')
-            }}
-            className="min-h-[52px] rounded-[var(--radius-control)] border border-[var(--alert)]/30 bg-[var(--alert)]/10 px-4 py-2 text-sm text-rose-100 transition hover:bg-[var(--alert)]/15"
-          >
-            模拟高风险预警
-          </button>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
           <button
             type="button"
             onClick={() => {
@@ -185,6 +164,16 @@ export const HomeStatus = () => {
             className="min-h-[52px] rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-2 text-sm text-slate-200 transition hover:border-[var(--border-default)]"
           >
             记录症状：腹部紧绷
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              requestSupportHelp()
+              addTimelineEvent('联系支持', '用户主动发起一次人工复核请求')
+            }}
+            className="min-h-[52px] rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-2 text-sm text-slate-200 transition hover:border-[var(--border-default)]"
+          >
+            发起人工复核
           </button>
         </div>
 
@@ -247,7 +236,6 @@ export const HomeStatus = () => {
             <li>22:00 发送晚间状态给家属与医生</li>
           </ul>
         </div>
-        <MockModeBanner />
         <MemorialModeBanner defaultExpandedWhenEnabled />
       </div>
       <footer className="pt-2">

@@ -3,8 +3,7 @@ import { BreathingCircle } from '../../components/charts/BreathingCircle'
 import { ContractionHeatmap } from '../../components/charts/ContractionHeatmap'
 import { EHGWaveformChart } from '../../components/charts/EHGWaveformChart'
 import { StatusOrb } from '../../components/shared/StatusOrb'
-import { getMockScenarioDefinition, mockScenarios } from '../../data/mockScenarios'
-import { useAppStore, useMemorialStore, usePatientJournalStore, useRealtimeStore } from '../../store'
+import { useMemorialStore, usePatientJournalStore, useRealtimeStore } from '../../store'
 
 const postureLabelMap: Record<string, string> = {
   standing: '站立',
@@ -25,36 +24,20 @@ const formatDuration = (seconds: number) => {
 export const LiveMonitor = () => {
   const [viewMode, setViewMode] = useState<'soft' | 'pro'>('soft')
   const [now, setNow] = useState(() => Date.now())
-  const mockScenario = useAppStore((state) => state.mockScenario)
-  const setMockScenario = useAppStore((state) => state.setMockScenario)
   const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
   const dataSourceType = useRealtimeStore((state) => state.dataSourceType)
-  const setDataSourceType = useRealtimeStore((state) => state.setDataSourceType)
   const connectionStatus = useRealtimeStore((state) => state.connectionStatus)
   const latestFrame = useRealtimeStore((state) => state.latestFrame)
   const frameBuffer = useRealtimeStore((state) => state.frameBuffer)
   const lastFrameLatencyMs = useRealtimeStore((state) => state.lastFrameLatencyMs)
   const lastError = useRealtimeStore((state) => state.lastError)
-  const sourceConfig = useRealtimeStore((state) => state.sourceConfig)
-  const patchSourceConfig = useRealtimeStore((state) => state.patchSourceConfig)
-  const bindMockScenario = useRealtimeStore((state) => state.bindMockScenario)
   const connect = useRealtimeStore((state) => state.connect)
   const disconnect = useRealtimeStore((state) => state.disconnect)
-  const reconnect = useRealtimeStore((state) => state.reconnect)
 
   const activeMonitoringStartedAt = usePatientJournalStore((state) => state.activeMonitoringStartedAt)
   const startMonitoring = usePatientJournalStore((state) => state.startMonitoring)
   const stopMonitoring = usePatientJournalStore((state) => state.stopMonitoring)
   const addTimelineEvent = usePatientJournalStore((state) => state.addTimelineEvent)
-
-  useEffect(() => {
-    bindMockScenario(mockScenario)
-  }, [bindMockScenario, mockScenario])
-
-  useEffect(() => {
-    if (dataSourceType !== 'mock') return
-    void reconnect()
-  }, [dataSourceType, mockScenario, reconnect])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -78,8 +61,6 @@ export const LiveMonitor = () => {
   }, [activeMonitoringStartedAt, now])
 
   const isMonitoring = activeMonitoringStartedAt !== null
-  const currentMockScenario = getMockScenarioDefinition(mockScenario)
-
   const handleConnect = async () => {
     await connect()
     const status = useRealtimeStore.getState().connectionStatus
@@ -169,83 +150,10 @@ export const LiveMonitor = () => {
       <div className="space-y-4">
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-xs uppercase tracking-[0.3em] text-slate-400">数据接入</div>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {[
-              { type: 'ble', label: '真实设备' },
-              { type: 'websocket', label: '实时网关' },
-              { type: 'mock', label: 'Mock' }
-            ].map((item) => (
-              <button
-                key={item.type}
-                type="button"
-                onClick={() => setDataSourceType(item.type as 'mock' | 'websocket' | 'ble')}
-                className={`rounded-[var(--radius-control)] border px-3 py-2 text-xs transition ${
-                  dataSourceType === item.type
-                    ? 'border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--text-primary)]'
-                    : 'border-[var(--border-subtle)] bg-[var(--bg-2)] text-slate-300 hover:border-[var(--border-default)]'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
+          <div className="mt-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-slate-300">
+            当前来源：{dataSourceType === 'ble' ? '真实设备' : dataSourceType === 'websocket' ? '实时网关' : '示例数据'}
           </div>
-
-          {dataSourceType === 'mock' ? (
-            <div className="mt-3 space-y-2">
-              <select
-                value={mockScenario}
-                onChange={(event) => setMockScenario(Number(event.target.value))}
-                className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]"
-              >
-                {mockScenarios.map((scenario) => (
-                  <option key={scenario.code} value={scenario.id}>
-                    {scenario.label}
-                  </option>
-                ))}
-              </select>
-              <div className="text-xs text-slate-400">{currentMockScenario.summary}</div>
-            </div>
-          ) : null}
-
-          {dataSourceType === 'websocket' ? (
-            <div className="mt-3 space-y-2">
-              <input
-                value={sourceConfig.websocket.url}
-                onChange={(event) => patchSourceConfig('websocket', { url: event.target.value })}
-                className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]"
-                placeholder="ws://127.0.0.1:8787/stream"
-              />
-              <input
-                value={sourceConfig.websocket.authToken}
-                onChange={(event) => patchSourceConfig('websocket', { authToken: event.target.value })}
-                className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]"
-                placeholder="可选 token"
-              />
-            </div>
-          ) : null}
-
-          {dataSourceType === 'ble' ? (
-            <div className="mt-3 space-y-2">
-              <input
-                value={sourceConfig.ble.deviceId}
-                onChange={(event) => patchSourceConfig('ble', { deviceId: event.target.value })}
-                className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]"
-                placeholder="设备 ID（可选）"
-              />
-              <input
-                value={sourceConfig.ble.serviceUuid}
-                onChange={(event) => patchSourceConfig('ble', { serviceUuid: event.target.value })}
-                className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]"
-                placeholder="Service UUID（可选）"
-              />
-              <input
-                value={sourceConfig.ble.characteristicUuid}
-                onChange={(event) => patchSourceConfig('ble', { characteristicUuid: event.target.value })}
-                className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]"
-                placeholder="Characteristic UUID（可选）"
-              />
-            </div>
-          ) : null}
+          <div className="mt-2 text-xs text-slate-400">如需调整数据源和示例参数，请前往设置页面。</div>
 
           <div className="mt-3 flex gap-2">
             <button

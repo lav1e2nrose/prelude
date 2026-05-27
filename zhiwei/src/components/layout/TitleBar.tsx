@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react'
-import { getMockScenarioDefinition } from '../../data/mockScenarios'
-import { PortalSwitcher } from './PortalSwitcher'
 import { useAppStore, useRealtimeStore } from '../../store'
 
 export const TitleBar = () => {
@@ -8,7 +6,6 @@ export const TitleBar = () => {
   const [maximized, setMaximized] = useState(false)
   const [now, setNow] = useState(() => new Date())
   const portal = useAppStore((state) => state.portal)
-  const mockScenario = useAppStore((state) => state.mockScenario)
   const dataSourceType = useRealtimeStore((state) => state.dataSourceType)
   const connectionStatus = useRealtimeStore((state) => state.connectionStatus)
   const latestFrame = useRealtimeStore((state) => state.latestFrame)
@@ -19,9 +16,8 @@ export const TitleBar = () => {
     doctor: '医生端'
   }
   const portalLabel = portalLabelMap[portal] ?? '未知'
-  const scenario = getMockScenarioDefinition(mockScenario)
   const sourceLabel =
-    dataSourceType === 'ble' ? '真实设备' : dataSourceType === 'websocket' ? '实时网关' : `Mock · ${scenario.label}`
+    dataSourceType === 'ble' ? '真实设备' : dataSourceType === 'websocket' ? '实时网关' : '示例数据'
   const sourceDetail =
     dataSourceType === 'ble'
       ? latestFrame?.batteryLevel != null
@@ -29,7 +25,9 @@ export const TitleBar = () => {
         : sourceConfig.ble.deviceId || '等待设备连接'
       : dataSourceType === 'websocket'
         ? sourceConfig.websocket.url
-        : `电量 ${latestFrame?.batteryLevel != null ? `${Math.round(latestFrame.batteryLevel)}%` : scenario.battery}`
+        : latestFrame?.batteryLevel != null
+          ? `电量 ${Math.round(latestFrame.batteryLevel)}%`
+          : '模拟数据运行中'
 
   useEffect(() => {
     if (!desktop?.onWindowStateChange) return
@@ -88,7 +86,6 @@ export const TitleBar = () => {
         <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
           {sourceDetail}
         </div>
-        <PortalSwitcher />
         {desktop?.isDesktop ? (
           <div className="flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-2)] p-1">
             <button

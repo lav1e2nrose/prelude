@@ -2,15 +2,20 @@ import { create } from 'zustand'
 
 export type PortalType = 'patient' | 'guardian' | 'doctor'
 
+export interface UserProfile {
+  username: string
+  displayName: string
+}
+
 export interface AppState {
   portal: PortalType
   page: string
   loggedIn: boolean
-  mockScenario: number
+  userProfile: UserProfile | null
   setPortal: (portal: PortalType) => void
   setPage: (page: string) => void
-  setLoggedIn: (loggedIn: boolean) => void
-  setMockScenario: (scenario: number) => void
+  login: (userProfile: UserProfile) => void
+  logout: () => void
 }
 
 const defaultPageByPortal: Record<PortalType, string> = {
@@ -23,11 +28,12 @@ export const useAppStore = create<AppState>((set) => ({
   portal: 'patient',
   page: defaultPageByPortal.patient,
   loggedIn: false,
-  mockScenario: 1,
-  setPortal: (portal) => set(() => ({ portal, page: defaultPageByPortal[portal] })),
+  userProfile: null,
+  setPortal: (portal) =>
+    set((state) => (state.loggedIn ? state : { portal, page: defaultPageByPortal[portal] })),
   setPage: (page) => set(() => ({ page })),
-  setLoggedIn: (loggedIn) => set(() => ({ loggedIn })),
-  setMockScenario: (mockScenario) => set(() => ({ mockScenario }))
+  login: (userProfile) => set(() => ({ loggedIn: true, userProfile })),
+  logout: () => set(() => ({ loggedIn: false, userProfile: null }))
 }))
 
 export { useAlertsStore } from './alerts'
