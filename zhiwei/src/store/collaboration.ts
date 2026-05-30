@@ -14,7 +14,7 @@ interface CollaborationStore {
 const guardians: GuardianMember[] = [
   {
     id: 'guardian-chen',
-    name: '陈先生',
+    name: '陈先生（丈夫）',
     relationship: 'spouse',
     phoneNumber: '138****2468',
     notificationConfig: {
@@ -37,8 +37,8 @@ const guardians: GuardianMember[] = [
     isPrimaryContact: true
   },
   {
-    id: 'guardian-wang',
-    name: '王女士',
+    id: 'guardian-wang-mum',
+    name: '王女士（婆婆）',
     relationship: 'parent_in_law',
     phoneNumber: '139****1993',
     notificationConfig: {
@@ -57,6 +57,78 @@ const guardians: GuardianMember[] = [
       isOnline: true,
       lastActiveAt: Date.now() - 1000 * 60 * 12,
       distanceToPatient: 200
+    },
+    isPrimaryContact: false
+  },
+  {
+    id: 'guardian-liu',
+    name: '刘女士（妈妈）',
+    relationship: 'parent',
+    phoneNumber: '136****8821',
+    notificationConfig: {
+      receivesAttention: false,
+      receivesAlert: false,
+      receivesEmergency: true,
+      quietHoursOverrideForEmergency: true
+    },
+    permissions: {
+      viewWaveform: false,
+      viewLocation: false,
+      viewHistoricalData: false,
+      receiveDailySummary: false
+    },
+    currentStatus: {
+      isOnline: false,
+      lastActiveAt: Date.now() - 1000 * 60 * 60 * 4,
+      distanceToPatient: 1800000
+    },
+    isPrimaryContact: false
+  },
+  {
+    id: 'guardian-li',
+    name: '李护士（月嫂）',
+    relationship: 'caregiver',
+    phoneNumber: '135****4410',
+    notificationConfig: {
+      receivesAttention: false,
+      receivesAlert: false,
+      receivesEmergency: true,
+      quietHoursOverrideForEmergency: false
+    },
+    permissions: {
+      viewWaveform: false,
+      viewLocation: true,
+      viewHistoricalData: false,
+      receiveDailySummary: false
+    },
+    currentStatus: {
+      isOnline: true,
+      lastActiveAt: Date.now() - 1000 * 60 * 5,
+      distanceToPatient: 50
+    },
+    isPrimaryContact: false
+  },
+  {
+    id: 'guardian-chen-dad',
+    name: '陈父（公公）',
+    relationship: 'parent_in_law',
+    phoneNumber: '137****3302',
+    notificationConfig: {
+      receivesAttention: false,
+      receivesAlert: false,
+      receivesEmergency: true,
+      quietHoursOverrideForEmergency: true
+    },
+    permissions: {
+      viewWaveform: false,
+      viewLocation: false,
+      viewHistoricalData: false,
+      receiveDailySummary: true
+    },
+    currentStatus: {
+      isOnline: false,
+      lastActiveAt: Date.now() - 1000 * 60 * 60 * 2,
+      distanceToPatient: 8000
     },
     isPrimaryContact: false
   }
