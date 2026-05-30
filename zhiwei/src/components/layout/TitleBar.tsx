@@ -15,7 +15,6 @@ export const TitleBar = () => {
     guardian: '家属端',
     doctor: '医生端'
   }
-  const portalLabel = portalLabelMap[portal] ?? '未知'
   const sourceLabel =
     dataSourceType === 'ble' ? '真实设备' : dataSourceType === 'websocket' ? '实时网关' : '示例数据'
   const sourceDetail =
@@ -74,11 +73,27 @@ export const TitleBar = () => {
         </div>
       </div>
       <div className="no-drag-region flex items-center gap-3">
-        <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
-          {now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+        <div className="flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)]/90 p-1">
+          {(['patient', 'guardian', 'doctor'] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => {
+                const { setPortal } = useAppStore.getState()
+                setPortal(p)
+              }}
+              className={`rounded-full px-3 py-1 text-xs transition ${
+                portal === p
+                  ? 'bg-[var(--accent)] text-white shadow-sm'
+                  : 'text-slate-400 hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {portalLabelMap[p]}
+            </button>
+          ))}
         </div>
         <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
-          模式：{portalLabel}
+          {now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
         </div>
         <div className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
           链路：{connectionStatus}

@@ -30,7 +30,7 @@ export const useAppStore = create<AppState>((set) => ({
   loggedIn: false,
   userProfile: null,
   setPortal: (portal) =>
-    set((state) => (state.loggedIn ? state : { portal, page: defaultPageByPortal[portal] })),
+    set(() => ({ portal, page: defaultPageByPortal[portal] })),
   setPage: (page) => set(() => ({ page })),
   login: (userProfile) => set(() => ({ loggedIn: true, userProfile })),
   logout: () => set(() => ({ loggedIn: false, userProfile: null }))
