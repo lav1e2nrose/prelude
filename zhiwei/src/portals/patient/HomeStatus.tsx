@@ -3,6 +3,7 @@ import { FalsePositiveFeedback } from '../../components/shared/FalsePositiveFeed
 import { MemorialModeBanner } from '../../components/shared/MemorialModeBanner'
 import { StatusOrb } from '../../components/shared/StatusOrb'
 import { useAlertsStore, useAppStore, useMemorialStore, useMemorialWorkflowStore, usePatientJournalStore, useRealtimeStore } from '../../store'
+import { computeGestationalAge, formatDaysUntilDue, formatGestationalAge } from '../../utils/gestational'
 
 const formatDelta = (value: number) => (value > 0 ? `+${value.toFixed(1)}%` : `${value.toFixed(1)}%`)
 
@@ -23,7 +24,10 @@ export const HomeStatus = () => {
   const addTimelineEvent = usePatientJournalStore((state) => state.addTimelineEvent)
   const latestAlert = alerts[0]
   const pendingAlerts = alerts.filter((alert) => !alert.acknowledged).length
-  const displayName = useAppStore((state) => state.userProfile?.displayName ?? '用户')
+  const patient = useAppStore((state) => state.patient)
+  const riskUnavailable = useRealtimeStore((state) => state.riskUnavailable)
+  const displayName = patient?.displayName ?? '用户'
+  const age = patient ? computeGestationalAge(patient.dueDate) : null
 
   const startOfDay = useMemo(() => {
     const now = new Date()
@@ -113,8 +117,10 @@ export const HomeStatus = () => {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-[0.3em] text-slate-400">首页状态</div>
-            <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">上午好，{displayName}</div>
-            <p className="mt-2 text-sm text-slate-300">孕 32 周 + 3 天 · 距离预产期还有 7 周 + 4 天</p>
+            <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">您好，{displayName}</div>
+            <p className="mt-2 text-sm text-slate-300">
+              {age ? `${formatGestationalAge(age)} · ${formatDaysUntilDue(age)}` : '档案加载中…'}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
               <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1">
                 待处理预警 {pendingAlerts} 条
@@ -186,6 +192,11 @@ export const HomeStatus = () => {
         </button>
 
         {showProfessional ? (
+          riskUnavailable ? (
+            <div className="mt-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 p-4 text-xs leading-6 text-slate-400">
+              等待算法服务接入后显示早产概率与特征参数。当前仅展示设备采集的原始信号，风险评估由算法端给出。
+            </div>
+          ) : (
           <div className="mt-3 grid gap-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 p-4 md:grid-cols-2">
             <div>
               <div className="text-xs text-slate-400">当前 24h 早产概率</div>
@@ -208,6 +219,7 @@ export const HomeStatus = () => {
             <div className="text-xs text-slate-300">中值频率：{latestFrame?.features.medianFrequency.toFixed(2) ?? '0.38'} Hz</div>
             <div className="text-xs text-slate-300">链路状态：{connectionStatus}</div>
           </div>
+          )
         ) : null}
       </section>
 

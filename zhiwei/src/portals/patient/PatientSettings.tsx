@@ -23,6 +23,9 @@ export const PatientSettings = () => {
   const sourceConfig = useRealtimeStore((state) => state.sourceConfig)
   const patchSourceConfig = useRealtimeStore((state) => state.patchSourceConfig)
   const setDataSourceType = useRealtimeStore((state) => state.setDataSourceType)
+  const riskEngineMode = useRealtimeStore((state) => state.riskEngineMode)
+  const setRiskEngineMode = useRealtimeStore((state) => state.setRiskEngineMode)
+  const connect = useRealtimeStore((state) => state.connect)
 
   const inactivityDays = useMemorialWorkflowStore((state) => state.inactivityDays)
   const passivePromptVisible = useMemorialWorkflowStore((state) => state.passivePromptVisible)
@@ -312,6 +315,59 @@ export const PatientSettings = () => {
             />
           </div>
         ) : null}
+      </div>
+
+      <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+        <div className="text-sm text-slate-300">算法服务</div>
+        <div className="mt-2 text-xs text-slate-400">
+          风险评分由算法端给出。生产环境填写算法服务地址；算法未接入前界面如实显示"等待算法服务接入"。
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {[
+            { mode: 'remote' as const, label: '真实算法服务' },
+            { mode: 'mock' as const, label: 'Mock 算法（开发）' }
+          ].map((item) => (
+            <button
+              key={item.mode}
+              type="button"
+              onClick={() => setRiskEngineMode(item.mode)}
+              className={`rounded-[var(--radius-control)] border px-3 py-2 text-xs transition ${
+                riskEngineMode === item.mode
+                  ? 'border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--text-primary)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--bg-2)] text-slate-300 hover:border-[var(--border-default)]'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        {riskEngineMode === 'remote' ? (
+          <div className="mt-3 space-y-2">
+            <input
+              value={sourceConfig.algorithm.baseUrl}
+              onChange={(event) => patchSourceConfig('algorithm', { baseUrl: event.target.value })}
+              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
+              placeholder="算法服务地址，如 https://algo.zhiwei.health"
+            />
+            <input
+              value={sourceConfig.algorithm.token}
+              onChange={(event) => patchSourceConfig('algorithm', { token: event.target.value })}
+              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
+              placeholder="算法服务鉴权 token（可选）"
+            />
+          </div>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            setDataSourceType('mock')
+            setRiskEngineMode('mock')
+            void connect()
+          }}
+          className="mt-3 rounded-[var(--radius-control)] border border-dashed border-amber-400/40 px-3 py-2 text-xs text-amber-200"
+        >
+          一键演示模式（Mock 设备 + Mock 算法）
+        </button>
       </div>
 
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">

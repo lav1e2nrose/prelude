@@ -1,5 +1,14 @@
 export interface EHGFrame {
+  /** 帧结构版本（前后兼容）。详见 docs/INTEGRATION.md */
+  schemaVersion?: number
+  /** 设备序列号（来自设备信息特征） */
+  deviceId?: string
+  /** 单调递增帧序号，用于丢包检测 */
+  seq?: number
+  /** 采样率 Hz（如 20） */
+  sampleRateHz?: number
   timestamp: number
+  /** 四导联 EHG 原始值（μV） */
   ehg: number[]
   fetalHR?: number
   maternalHR: number
@@ -12,7 +21,10 @@ export interface EHGFrame {
     gy: number
     gz: number
   }
+  /** 综合电极贴合质量 0-100（每导联明细见 electrodeChannels） */
   electrodeQuality: number
+  /** 每导联电极贴合质量 0-100（可选；二进制帧拆包后填充） */
+  electrodeChannels?: number[]
   batteryLevel: number
   posture: 'standing' | 'sitting' | 'lying_left' | 'lying_right' | 'lying_back' | 'unknown'
 }

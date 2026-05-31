@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { CountdownCallButton } from '../../components/shared/CountdownCallButton'
 import { StatusOrb } from '../../components/shared/StatusOrb'
-import { useMemorialStore, useMemorialWorkflowStore } from '../../store'
+import { useAppStore, useMemorialStore, useMemorialWorkflowStore } from '../../store'
+import { computeGestationalAge, formatGestationalAge } from '../../utils/gestational'
 import { useAlertsStore } from '../../store/alerts'
 import { useCollaborationStore } from '../../store/collaboration'
 import { useRealtimeStore } from '../../store/realtime'
@@ -24,6 +25,9 @@ export const AtAGlance = () => {
   const [sixHoursAgo] = useState(() => Date.now() - 6 * 60 * 60 * 1000)
   const recentContractions = contractions.filter((c) => c.timestamp >= sixHoursAgo)
   const recentMovements = fetalMovements.filter((m) => m.timestamp >= sixHoursAgo)
+  const patient = useAppStore((state) => state.patient)
+  const age = patient ? computeGestationalAge(patient.dueDate) : null
+  const patientHeader = patient ? `${patient.displayName} · ${age ? formatGestationalAge(age) : ''}` : '孕妇状态'
 
   const postureLabelMap: Record<string, string> = {
     standing: '站立', sitting: '坐姿', lying_left: '左侧卧',
@@ -33,7 +37,7 @@ export const AtAGlance = () => {
   return (
     <div className="space-y-4">
       <div className="text-xl font-semibold text-[var(--text-primary)]">
-        {memorialEnabled ? '账户状态' : '张小雅 · 孕 32 周 + 3 天'}
+        {memorialEnabled ? '账户状态' : patientHeader}
       </div>
 
       {/* 主状态卡 */}

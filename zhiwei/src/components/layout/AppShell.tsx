@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useMemorialStore } from '../../store'
+import { DevModeBanner } from '../shared/DevModeBanner'
 import { TitleBar } from './TitleBar'
 
 interface AppShellProps {
@@ -21,6 +22,7 @@ export const AppShell = ({ sidebar, children, rightRail }: AppShellProps) => {
       ) : null}
       <div className="relative flex h-full w-full flex-col overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-0)] shadow-[var(--shadow-card)]">
         <TitleBar />
+        <DevModeBanner />
         <div className="flex flex-1 overflow-hidden">
           {sidebar}
           <main className="flex-1 overflow-y-auto bg-[var(--bg-0)]/95 p-6">{children}</main>

@@ -26,7 +26,7 @@ import { HomeStatus } from './portals/patient/HomeStatus'
 import { LiveMonitor } from './portals/patient/LiveMonitor'
 import { PatientSettings } from './portals/patient/PatientSettings'
 import { PrenatalCalendar } from './portals/patient/PrenatalCalendar'
-import { type PortalType, useAppStore, useMemorialStore, useMemorialWorkflowStore } from './store'
+import { type PortalType, useAppStore, useMemorialStore, useMemorialWorkflowStore, useRealtimeStore } from './store'
 
 const RETENTION_CHECK_INTERVAL_MS = 30 * 1000
 
@@ -130,6 +130,13 @@ export const App = () => {
     }, RETENTION_CHECK_INTERVAL_MS)
     return () => window.clearInterval(timer)
   }, [processRetentionDeadline])
+
+  // 退出登录时断开设备与算法订阅，清理敏感实时数据（PART 12 交互正确性）
+  useEffect(() => {
+    if (!loggedIn) {
+      void useRealtimeStore.getState().disconnect()
+    }
+  }, [loggedIn])
 
   useEffect(() => {
     if (!runtimeReady || !isDesktop) {

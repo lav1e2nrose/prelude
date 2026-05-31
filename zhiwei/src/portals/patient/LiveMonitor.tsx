@@ -47,7 +47,8 @@ export const LiveMonitor = () => {
   }, [])
 
   const sourceStatusLabel: Record<typeof connectionStatus, string> = {
-    disconnected: '未连接',
+    idle: '未连接',
+    scanning: '扫描设备中',
     pairing: '连接中',
     connected: '已连接',
     reconnecting: '重连中',
