@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { RiskExplanation } from '../../types/signal'
+import { toast } from '../../store/toast'
 import { CounterfactualChart } from '../charts/CounterfactualChart'
 import { ShapBarChart } from '../charts/ShapBarChart'
 
@@ -45,6 +46,7 @@ export const ExplainabilityPanel = ({ explanation }: ExplainabilityPanelProps) =
     if (clinicalReasoning.trim().length < 20) return
     setOverrideSubmitted(true)
     setShowOverride(false)
+    toast.success('覆盖已提交', '已记录临床判断并进入算法反馈队列')
   }
 
   return (

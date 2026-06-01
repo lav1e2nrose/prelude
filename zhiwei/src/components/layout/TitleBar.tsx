@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAppStore, useRealtimeStore } from '../../store'
+import { confirmDialog } from '../../store/dialog'
 import type { ConnectionStatus } from '../../data/IDataSource'
 import type { UserRole } from '../../types/user'
 
@@ -35,6 +36,20 @@ export const TitleBar = () => {
   const connectionStatus = useRealtimeStore((state) => state.connectionStatus)
   const riskEngineStatus = useRealtimeStore((state) => state.riskEngineStatus)
   const latestFrame = useRealtimeStore((state) => state.latestFrame)
+
+  const handleLogout = async () => {
+    const connected = connectionStatus === 'connected' || connectionStatus === 'mock'
+    const ok = await confirmDialog({
+      title: '退出登录？',
+      body: connected
+        ? '当前正在监测，退出登录会断开设备连接并停止实时评估。'
+        : '退出后需重新登录才能继续使用。',
+      confirmText: '退出登录',
+      cancelText: '取消',
+      tone: 'danger'
+    })
+    if (ok) logout()
+  }
 
   const conn = connectionMeta[connectionStatus] ?? connectionMeta.idle
   const engine = riskEngineMeta[riskEngineStatus] ?? riskEngineMeta.unavailable
@@ -92,7 +107,7 @@ export const TitleBar = () => {
             <span className="text-slate-500">· {portalLabelMap[session.role]}</span>
             <button
               type="button"
-              onClick={logout}
+              onClick={handleLogout}
               className="ml-1 rounded-md border border-[var(--border-subtle)] px-2 py-0.5 text-[11px] text-slate-400 transition hover:border-rose-400/40 hover:text-rose-300"
             >
               退出登录

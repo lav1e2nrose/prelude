@@ -1,15 +1,19 @@
 import type { ReactNode } from 'react'
 import { useMemorialStore } from '../../store'
+import { ConfirmHost } from '../shared/ConfirmHost'
 import { DevModeBanner } from '../shared/DevModeBanner'
+import { ToastHost } from '../shared/ToastHost'
 import { TitleBar } from './TitleBar'
 
 interface AppShellProps {
   sidebar: ReactNode
   children: ReactNode
   rightRail?: ReactNode
+  /** 当前页面标识；变化时主内容区做淡入上滑转场 */
+  pageKey?: string
 }
 
-export const AppShell = ({ sidebar, children, rightRail }: AppShellProps) => {
+export const AppShell = ({ sidebar, children, rightRail, pageKey }: AppShellProps) => {
   const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
 
   return (
@@ -25,10 +29,14 @@ export const AppShell = ({ sidebar, children, rightRail }: AppShellProps) => {
         <DevModeBanner />
         <div className="flex flex-1 overflow-hidden">
           {sidebar}
-          <main className="flex-1 overflow-y-auto bg-[var(--bg-0)]/95 p-6">{children}</main>
+          <main key={pageKey} className="page-enter flex-1 overflow-y-auto bg-[var(--bg-0)]/95 p-6">
+            {children}
+          </main>
           {rightRail}
         </div>
       </div>
+      <ToastHost />
+      <ConfirmHost />
     </div>
   )
 }

@@ -1,6 +1,8 @@
 import { TeamSidebar } from './TeamSidebar'
+import { useAppStore } from '../../store'
 import { useCollaborationStore } from '../../store/collaboration'
 import { useAlertsStore } from '../../store/alerts'
+import { toast } from '../../store/toast'
 import { CountdownCallButton } from '../../components/shared/CountdownCallButton'
 
 const relationshipLabels: Record<string, string> = {
@@ -22,6 +24,10 @@ export const CoordinationView = () => {
   const escalate = useCollaborationStore((state) => state.escalate)
   const alerts = useAlertsStore((state) => state.alerts)
   const activeAlert = alerts.find((a) => !a.acknowledged)
+  // 以当前登录家属身份响应（而非硬编码成员）
+  const sessionUserId = useAppStore((state) => state.session?.userId)
+  const me = guardians.find((g) => g.id === sessionUserId) ?? guardians[0] ?? null
+  const myId = me?.id ?? ''
 
   const formatShiftDays = (days: number[]) => {
     const labels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
@@ -103,26 +109,26 @@ export const CoordinationView = () => {
                 })}
             </div>
             <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)] p-3">
-              <div className="text-xs text-slate-400">请选择您的响应</div>
+              <div className="text-xs text-slate-400">请选择您（{me?.name ?? '当前家属'}）的响应</div>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => acknowledgeByGuardian('guardian-chen')}
-                  className="rounded-[var(--radius-control)] border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100"
+                  onClick={() => { acknowledgeByGuardian(myId); toast.success('已确认处理', '其他家属将看到您正在处理') }}
+                  className="rounded-[var(--radius-control)] border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/20"
                 >
                   我来处理
                 </button>
                 <button
                   type="button"
-                  onClick={() => setGuardianEnRoute('guardian-chen')}
-                  className="rounded-[var(--radius-control)] border border-sky-400/30 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-100"
+                  onClick={() => { setGuardianEnRoute(myId); toast.success('已标记在途', '团队已收到您正在赶往的状态') }}
+                  className="rounded-[var(--radius-control)] border border-sky-400/30 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-100 transition hover:bg-sky-500/20"
                 >
                   我正在赶过去
                 </button>
                 <button
                   type="button"
-                  onClick={() => markCannotRespond('guardian-chen')}
-                  className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-1)] px-3 py-1.5 text-xs text-slate-300"
+                  onClick={() => { markCannotRespond(myId); toast.info('已标记暂不可达', '系统将在无人响应时自动升级') }}
+                  className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-1)] px-3 py-1.5 text-xs text-slate-300 transition hover:bg-[var(--bg-2)]"
                 >
                   我现在去不了
                 </button>

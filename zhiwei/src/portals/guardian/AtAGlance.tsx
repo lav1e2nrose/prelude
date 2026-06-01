@@ -43,7 +43,7 @@ export const AtAGlance = () => {
       {/* 主状态卡 */}
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-5">
         <div className="flex flex-wrap items-center gap-6">
-          <StatusOrb level={latestAlert?.level ?? 'attention'} label={memorialEnabled ? '账户状态' : '实时状态'} />
+          <StatusOrb level={memorialEnabled ? 'unknown' : (latestAlert?.level ?? 'unknown')} label={memorialEnabled ? '账户状态' : '实时状态'} />
           <div>
             <div className="text-2xl font-semibold text-[var(--text-primary)]">
               {memorialEnabled ? '—' : latestAlert?.level === 'safe' ? '平稳' : latestAlert?.level === 'attention' ? '需留意' : latestAlert?.level === 'alert' ? '风险升高' : '紧急'}

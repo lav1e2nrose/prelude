@@ -4,6 +4,8 @@ import { ContractionHeatmap } from '../../components/charts/ContractionHeatmap'
 import { EHGWaveformChart } from '../../components/charts/EHGWaveformChart'
 import { StatusOrb } from '../../components/shared/StatusOrb'
 import { useMemorialStore, usePatientJournalStore, useRealtimeStore } from '../../store'
+import { confirmDialog } from '../../store/dialog'
+import { toast } from '../../store/toast'
 
 const postureLabelMap: Record<string, string> = {
   standing: '站立',
@@ -31,8 +33,10 @@ export const LiveMonitor = () => {
   const frameBuffer = useRealtimeStore((state) => state.frameBuffer)
   const lastFrameLatencyMs = useRealtimeStore((state) => state.lastFrameLatencyMs)
   const lastError = useRealtimeStore((state) => state.lastError)
+  const riskUnavailable = useRealtimeStore((state) => state.riskUnavailable)
   const connect = useRealtimeStore((state) => state.connect)
   const disconnect = useRealtimeStore((state) => state.disconnect)
+  const orbLevel = !latestFrame || riskUnavailable ? 'unknown' : latestFrame.riskLevel
 
   const activeMonitoringStartedAt = usePatientJournalStore((state) => state.activeMonitoringStartedAt)
   const startMonitoring = usePatientJournalStore((state) => state.startMonitoring)
@@ -62,19 +66,28 @@ export const LiveMonitor = () => {
   }, [activeMonitoringStartedAt, now])
 
   const isMonitoring = activeMonitoringStartedAt !== null
+  const isConnecting = connectionStatus === 'scanning' || connectionStatus === 'pairing' || connectionStatus === 'reconnecting'
+  const isConnected = connectionStatus === 'connected' || connectionStatus === 'mock'
   const handleConnect = async () => {
     await connect()
     const status = useRealtimeStore.getState().connectionStatus
     if ((status === 'connected' || status === 'mock') && !usePatientJournalStore.getState().activeMonitoringStartedAt) {
       startMonitoring()
+      toast.success('监测已开始', '实时采样与风险评估已启动')
+    } else if (status === 'error') {
+      toast.alert('连接失败', useRealtimeStore.getState().lastError ?? '请检查设备或在设置中启用演示模式')
     }
   }
 
   const handleDisconnect = async () => {
     if (!memorialEnabled && isMonitoring && monitorDuration < 40 * 60) {
-      const shouldStop = window.confirm(
-        `本次监测仅 ${Math.round(monitorDuration / 60)} 分钟，建议至少 40 分钟。确定结束吗？`
-      )
+      const shouldStop = await confirmDialog({
+        title: '确定结束本次监测吗？',
+        body: `本次监测仅 ${Math.round(monitorDuration / 60)} 分钟，建议至少 40 分钟以获得可靠的风险评估。`,
+        confirmText: '结束监测',
+        cancelText: '继续监测',
+        tone: 'danger'
+      })
       if (!shouldStop) {
         addTimelineEvent('继续监测', '用户取消提前结束操作')
         return
@@ -85,6 +98,7 @@ export const LiveMonitor = () => {
     const duration = stopMonitoring()
     if (duration !== null) {
       addTimelineEvent('监测结束确认', `本次监测 ${Math.round(duration / 60)} 分钟`)
+      toast.info('监测已结束', `本次监测 ${Math.round(duration / 60)} 分钟，数据已保存`)
     }
   }
 
@@ -117,8 +131,25 @@ export const LiveMonitor = () => {
           </div>
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-3">
-            <div className="text-sm text-slate-300">监测中 ● {formatDuration(monitorDuration)}</div>
-            <StatusOrb level={latestFrame?.riskLevel ?? 'attention'} label={memorialEnabled ? '当前数据状态' : '实时风险状态'} />
+            <div className="flex items-center gap-2 text-sm text-slate-300">
+              {isMonitoring && isConnected ? (
+                <>
+                  <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" style={{ animation: 'orb-pulse 2s ease-in-out infinite', ['--orb-glow' as string]: 'var(--safe-glow)' }} />
+                  监测中 · {formatDuration(monitorDuration)}
+                </>
+              ) : isConnecting ? (
+                <>
+                  <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-sky-400" />
+                  {connectionStatus === 'scanning' ? '扫描设备中…' : '连接中…'}
+                </>
+              ) : (
+                <>
+                  <span className="inline-flex h-2 w-2 rounded-full bg-slate-500" />
+                  未在监测
+                </>
+              )}
+            </div>
+            <StatusOrb level={orbLevel} label={memorialEnabled ? '当前数据状态' : '实时风险状态'} />
           </div>
 
           {viewMode === 'soft' ? (
@@ -185,7 +216,7 @@ export const LiveMonitor = () => {
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-xs uppercase tracking-[0.3em] text-slate-400">实时摘要</div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <StatusOrb level={latestFrame?.riskLevel ?? 'attention'} label={memorialEnabled ? '当前数据状态' : '实时风险状态'} />
+            <StatusOrb level={orbLevel} label={memorialEnabled ? '当前数据状态' : '实时风险状态'} />
             <div className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
               数据延迟 {lastFrameLatencyMs === null ? '--' : `${(lastFrameLatencyMs / 1000).toFixed(1)}s`}
             </div>

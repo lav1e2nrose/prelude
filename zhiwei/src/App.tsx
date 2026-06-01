@@ -27,6 +27,7 @@ import { LiveMonitor } from './portals/patient/LiveMonitor'
 import { PatientSettings } from './portals/patient/PatientSettings'
 import { PrenatalCalendar } from './portals/patient/PrenatalCalendar'
 import { type PortalType, useAppStore, useMemorialStore, useMemorialWorkflowStore, useRealtimeStore } from './store'
+import { toast } from './store/toast'
 
 const RETENTION_CHECK_INTERVAL_MS = 30 * 1000
 
@@ -135,6 +136,12 @@ export const App = () => {
   useEffect(() => {
     if (!loggedIn) {
       void useRealtimeStore.getState().disconnect()
+      return
+    }
+    const session = useAppStore.getState().session
+    if (session) {
+      const roleLabel = session.role === 'patient' ? '孕妇端' : session.role === 'guardian' ? '家属端' : '医生端'
+      toast.info(`欢迎回来，${session.displayName}`, `已以${roleLabel}身份登录`)
     }
   }, [loggedIn])
 
@@ -176,6 +183,7 @@ export const App = () => {
 
   return (
     <AppShell
+      pageKey={`${portal}:${page}`}
       sidebar={<Sidebar items={items} activeId={page} onSelect={setPage} />}
       rightRail={portal === 'patient' && !memorialEnabled ? <PatientSupportRail /> : undefined}
     >

@@ -4,6 +4,7 @@ import { MemorialModeBanner } from '../../components/shared/MemorialModeBanner'
 import { StatusOrb } from '../../components/shared/StatusOrb'
 import { useAlertsStore, useAppStore, useMemorialStore, useMemorialWorkflowStore, usePatientJournalStore, useRealtimeStore } from '../../store'
 import { computeGestationalAge, formatDaysUntilDue, formatGestationalAge } from '../../utils/gestational'
+import { toast } from '../../store/toast'
 
 const formatDelta = (value: number) => (value > 0 ? `+${value.toFixed(1)}%` : `${value.toFixed(1)}%`)
 
@@ -55,14 +56,17 @@ export const HomeStatus = () => {
   const prevRisk24h = frameBuffer.at(-2)?.features.pretermProbability24h ?? risk24h
   const prevRisk7d = frameBuffer.at(-2)?.features.pretermProbability7d ?? risk7d
 
+  const orbLevel = !latestFrame || riskUnavailable ? 'unknown' : latestFrame.riskLevel
   const statusCopy =
-    latestFrame?.riskLevel === 'safe'
-      ? '平稳'
-      : latestFrame?.riskLevel === 'attention'
-        ? '需关注'
-        : latestFrame?.riskLevel === 'alert'
-          ? '风险升高'
-          : '紧急'
+    orbLevel === 'unknown'
+      ? '等待监测数据'
+      : orbLevel === 'safe'
+        ? '平稳'
+        : orbLevel === 'attention'
+          ? '需关注'
+          : orbLevel === 'alert'
+            ? '风险升高'
+            : '紧急'
 
   if (memorialEnabled) {
     return (
@@ -133,7 +137,7 @@ export const HomeStatus = () => {
               </span>
             </div>
           </div>
-          <StatusOrb level={latestAlert?.level ?? latestFrame?.riskLevel ?? 'attention'} label={`实时风险状态 · ${statusCopy}`} />
+          <StatusOrb level={orbLevel} label={`实时风险状态 · ${statusCopy}`} />
         </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-[1.6fr_1fr]">
@@ -166,6 +170,7 @@ export const HomeStatus = () => {
             type="button"
             onClick={() => {
               addTimelineEvent('症状记录', '患者主动记录：腹部紧绷（约 3 分钟）')
+              toast.success('已记录症状', '腹部紧绷已加入今日时间线，并同步医生端')
             }}
             className="min-h-[52px] rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-2 text-sm text-slate-200 transition hover:border-[var(--border-default)]"
           >
@@ -176,6 +181,7 @@ export const HomeStatus = () => {
             onClick={() => {
               requestSupportHelp()
               addTimelineEvent('联系支持', '用户主动发起一次人工复核请求')
+              toast.info('已发起人工复核', '工作人员会尽快与您联系')
             }}
             className="min-h-[52px] rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-2 text-sm text-slate-200 transition hover:border-[var(--border-default)]"
           >
