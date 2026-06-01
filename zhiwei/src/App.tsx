@@ -26,7 +26,8 @@ import { HomeStatus } from './portals/patient/HomeStatus'
 import { LiveMonitor } from './portals/patient/LiveMonitor'
 import { PatientSettings } from './portals/patient/PatientSettings'
 import { PrenatalCalendar } from './portals/patient/PrenatalCalendar'
-import { type PortalType, useAppStore, useMemorialStore, useMemorialWorkflowStore, useRealtimeStore } from './store'
+import { type PortalType, useAppStore, useMemorialStore, useMemorialWorkflowStore, useRealtimeStore, useSettingsStore } from './store'
+import { applyDemoMode } from './store/demo'
 import { toast } from './store/toast'
 
 const RETENTION_CHECK_INTERVAL_MS = 30 * 1000
@@ -56,7 +57,7 @@ const portalNav: Record<PortalType, SidebarItem[]> = {
     { id: 'ReportGenerator', label: '报告生成' },
     { id: 'AlgorithmFeedback', label: '算法反馈' },
     { id: 'ModelVersionManagement', label: '模型版本' },
-    { id: 'OverridePanel', label: '医生覆盖' },
+    { id: 'OverridePanel', label: '人工审核' },
     { id: 'DoctorSettings', label: '设置' }
   ]
 }
@@ -142,6 +143,10 @@ export const App = () => {
     if (session) {
       const roleLabel = session.role === 'patient' ? '孕妇端' : session.role === 'guardian' ? '家属端' : '医生端'
       toast.info(`欢迎回来，${session.displayName}`, `已以${roleLabel}身份登录`)
+    }
+    // 演示模式：登录后自动接入 mock 数据源+算法并载入三端演示数据（波形/日志/警报立即可见）
+    if (useSettingsStore.getState().demoMode) {
+      applyDemoMode(true)
     }
   }, [loggedIn])
 

@@ -1,21 +1,12 @@
 import type { ProcessedFrame } from '../../types/signal'
 
-const fallbackSeries = [
-  { id: 'ch1', color: 'var(--ehg-ch1)', values: [0.1, 0.24, 0.18, 0.3, 0.22, 0.4, 0.28, 0.36, 0.26, 0.2] },
-  { id: 'ch2', color: 'var(--ehg-ch2)', values: [0.18, 0.2, 0.12, 0.26, 0.34, 0.28, 0.32, 0.24, 0.3, 0.22] },
-  { id: 'ch3', color: 'var(--ehg-ch3)', values: [0.12, 0.18, 0.26, 0.2, 0.3, 0.34, 0.22, 0.28, 0.24, 0.2] },
-  { id: 'ch4', color: 'var(--ehg-ch4)', values: [0.2, 0.14, 0.22, 0.3, 0.26, 0.18, 0.32, 0.28, 0.24, 0.16] }
-]
-
-const toPoints = (values: number[], width: number, height: number) => {
-  const max = Math.max(...values)
-  const min = Math.min(...values)
-  const range = Math.max(0.01, max - min)
+const toPath = (values: number[], width: number, height: number, globalMin: number, globalRange: number) => {
+  if (values.length === 0) return ''
   return values
     .map((value, index) => {
-      const x = (index / (values.length - 1)) * width
-      const y = height - ((value - min) / range) * height
-      return `${x.toFixed(1)},${y.toFixed(1)}`
+      const x = (index / Math.max(1, values.length - 1)) * width
+      const y = height - ((value - globalMin) / globalRange) * height
+      return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
     })
     .join(' ')
 }
@@ -34,40 +25,60 @@ const channelColors: Record<(typeof channels)[number], string> = {
 
 export const EHGWaveformChart = ({ frames = [] }: EHGWaveformChartProps) => {
   const width = 360
-  const height = 140
-  const signalFrames = frames.slice(-120)
-  const waveformSeries =
-    signalFrames.length > 0
-      ? channels.map((channel, index) => ({
-          id: channel,
-          color: channelColors[channel],
-          values: signalFrames.map((frame) => frame.ehg[index] ?? frame.ehg[0] ?? 0)
-        }))
-      : fallbackSeries
+  const channelHeight = 30
+  const gap = 6
+  const signalFrames = frames.slice(-150)
+  const hasData = signalFrames.length > 1
+  const latest = signalFrames.at(-1)
+  const sampleRate = latest?.sampleRateHz ?? 20
+
+  // 每通道独立归一化到自己的小窗，叠放显示
+  const series = channels.map((channel, index) => {
+    const values = signalFrames.map((frame) => frame.ehg[index] ?? frame.ehg[0] ?? 0)
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+    const range = Math.max(0.01, max - min)
+    return { id: channel, color: channelColors[channel], path: toPath(values, width, channelHeight, min, range) }
+  })
+
+  const totalHeight = channels.length * (channelHeight + gap)
 
   return (
     <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
       <div className="flex items-center justify-between">
-        <div className="text-sm text-slate-300">EHG 实时波形</div>
-        <div className="text-xs text-slate-400">{signalFrames.length > 0 ? '实时流更新中' : '最近 60 秒'}</div>
+        <div className="text-sm text-slate-300">EHG 实时波形（四导联）</div>
+        {hasData ? (
+          <div className="flex items-center gap-1.5 text-xs text-emerald-300">
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" style={{ animation: 'orb-pulse 1.6s ease-in-out infinite', ['--orb-glow' as string]: 'var(--safe-glow)' }} />
+            实时流更新中 · {sampleRate}Hz
+          </div>
+        ) : (
+          <div className="text-xs text-slate-500">未在监测</div>
+        )}
       </div>
       <div className="mt-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)] p-3">
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-36 w-full">
-          {waveformSeries.map((series) => (
-            <polyline
-              key={series.id}
-              fill="none"
-              stroke={series.color}
-              strokeWidth="2"
-              points={toPoints(series.values, width, height)}
-              opacity="0.9"
-            />
-          ))}
-        </svg>
+        {hasData ? (
+          <svg viewBox={`0 0 ${width} ${totalHeight}`} className="h-40 w-full" preserveAspectRatio="none">
+            {series.map((s, i) => (
+              <g key={s.id} transform={`translate(0, ${i * (channelHeight + gap)})`}>
+                <text x={2} y={10} fontSize={8} fill="var(--text-muted)">
+                  {s.id.toUpperCase()}
+                </text>
+                <path d={s.path} fill="none" stroke={s.color} strokeWidth={1.4} strokeLinejoin="round" />
+              </g>
+            ))}
+          </svg>
+        ) : (
+          <div className="flex h-40 flex-col items-center justify-center gap-2 text-center">
+            <div className="text-sm text-slate-400">连接设备后显示四导联实时波形</div>
+            <div className="text-xs text-slate-500">在「实时监测」页点击开始监测，或在设置中开启演示模式</div>
+          </div>
+        )}
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-400">
-        <div>采样率：250 Hz</div>
-        <div>滤波：0.1-3 Hz</div>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-400">
+        <div>采样率：{hasData ? `${sampleRate} Hz` : '--'}</div>
+        <div>显示滤波：0.1–3 Hz</div>
+        <div>窗口：最近 {Math.round(signalFrames.length / Math.max(1, sampleRate))} 秒</div>
       </div>
     </section>
   )

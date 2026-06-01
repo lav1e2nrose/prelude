@@ -9,6 +9,8 @@ interface AlertsStore {
   createDemoAlert: (level: AlertEvent['level']) => void
   markFalsePositive: (alertId: string) => void
   suppressAllAlerts: () => void
+  loadDemo: () => void
+  reset: () => void
 }
 
 const initialAlerts: AlertEvent[] = [
@@ -31,7 +33,10 @@ const initialAlerts: AlertEvent[] = [
 ]
 
 export const useAlertsStore = create<AlertsStore>((set) => ({
-  alerts: initialAlerts,
+  // 默认空：真实模式下不展示模拟警报。演示数据经 loadDemo() 载入。
+  alerts: [],
+  loadDemo: () => set(() => ({ alerts: initialAlerts })),
+  reset: () => set(() => ({ alerts: [] })),
   acknowledgeAlert: (alertId) =>
     set((state) => ({
       alerts: state.alerts.map((alert) =>

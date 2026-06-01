@@ -47,7 +47,7 @@ export const LoginScreen = () => {
         <div className="mb-8 text-center">
           <div className="text-xs uppercase tracking-[0.38em] text-[var(--accent)]">zhiwei desktop</div>
           <div className="mt-3 text-4xl font-semibold text-[var(--text-primary)]">知微 · ZhīWēi</div>
-          <p className="mt-3 text-sm leading-7 text-slate-400">见微知著，守护早产高危妈妈</p>
+          <p className="mt-3 text-sm leading-7 text-slate-400">智护孕程</p>
         </div>
 
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)]/95 p-6 shadow-[var(--shadow-card)] backdrop-blur-md">

@@ -1,5 +1,6 @@
 import { ContractionHeatmap } from '../../components/charts/ContractionHeatmap'
 import { ShapBarChart } from '../../components/charts/ShapBarChart'
+import { PatientContextHeader } from './PatientContextHeader'
 
 const patternInsights = [
   {
@@ -22,6 +23,7 @@ const patternInsights = [
 export const ContractionHeatmapPage = () => {
   return (
     <div className="space-y-4">
+      <PatientContextHeader />
       <div className="grid gap-4 lg:grid-cols-2">
         <ContractionHeatmap />
         <ShapBarChart />

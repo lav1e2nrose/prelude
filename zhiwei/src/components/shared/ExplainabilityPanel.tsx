@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type { RiskExplanation } from '../../types/signal'
 import { toast } from '../../store/toast'
-import { CounterfactualChart } from '../charts/CounterfactualChart'
 import { ShapBarChart } from '../charts/ShapBarChart'
 
 interface ExplainabilityPanelProps {
@@ -75,14 +74,6 @@ export const ExplainabilityPanel = ({ explanation }: ExplainabilityPanelProps) =
         <div className="mb-2 text-xs text-slate-400">为什么是 {riskScore}%？以下因素影响了这个评分：</div>
         <ShapBarChart contributions={explanation.featureContributions ?? []} />
       </div>
-
-      {/* 反事实分析段 */}
-      {explanation.counterfactuals && explanation.counterfactuals.length > 0 ? (
-        <div className="mt-4">
-          <div className="mb-2 text-xs text-slate-400">如果……会怎样？（反事实分析）</div>
-          <CounterfactualChart scenarios={explanation.counterfactuals} />
-        </div>
-      ) : null}
 
       {/* 类比患者段 */}
       <div className="mt-4 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 p-3">
