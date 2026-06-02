@@ -1,4 +1,10 @@
-import type { IDataSource, ConnectionStatus } from '../IDataSource'
+import type {
+  ConnectionStatus,
+  DeviceControlCommand,
+  DeviceError,
+  DeviceInfo,
+  IDataSource
+} from '../IDataSource'
 import type { EHGFrame } from '../../types/signal'
 
 interface BLEAdapterConfig {
@@ -7,48 +13,69 @@ interface BLEAdapterConfig {
   characteristicUuid?: string
 }
 
+// 生产默认数据源。经 Electron 预加载层注入的 devices 桥真实扫描/连接/订阅 BLE。
+// 运行时未注入桥接（如纯浏览器预览）时进入真实的 error 状态，不静默回退到 Mock。
 export class BLEAdapter implements IDataSource {
-  readonly name = 'BLEAdapter'
-  private _status: ConnectionStatus = 'disconnected'
+  readonly kind = 'ble' as const
+  private _status: ConnectionStatus = 'idle'
   private frameHandlers = new Set<(frame: EHGFrame) => void>()
   private statusHandlers = new Set<(status: ConnectionStatus) => void>()
-  private errorHandlers = new Set<(error: Error) => void>()
+  private errorHandlers = new Set<(error: DeviceError) => void>()
   private batteryHandlers = new Set<(level: number) => void>()
   private electrodeHandlers = new Set<(channel: number) => void>()
   private cleanupFrame: (() => void) | null = null
   private cleanupStatus: (() => void) | null = null
   private cleanupError: (() => void) | null = null
 
-  async connect(config?: Record<string, unknown>): Promise<void> {
-    const desktopDevices = window.zhiwei?.desktop?.devices
-    if (!desktopDevices) {
+  async scan(): Promise<DeviceInfo[]> {
+    const bridge = window.zhiwei?.desktop?.devices
+    if (!bridge?.scanBLE) {
+      this.updateStatus('idle')
+      return []
+    }
+    this.updateStatus('scanning')
+    try {
+      const devices = await bridge.scanBLE()
+      this.updateStatus('idle')
+      return devices
+    } catch (error) {
       this.updateStatus('error')
-      this.emitError(new Error('当前运行时未注入 BLE 桥接接口，请在 Electron 预加载层实现 devices API。'))
+      this.emitError({ code: 'scan_failed', message: error instanceof Error ? error.message : '扫描设备失败', recoverable: true })
+      return []
+    }
+  }
+
+  async connect(deviceId?: string, config?: Record<string, unknown>): Promise<void> {
+    const bridge = window.zhiwei?.desktop?.devices
+    if (!bridge) {
+      this.updateStatus('error')
+      this.emitError({
+        code: 'bridge_missing',
+        message: '当前运行时未注入 BLE 桥接接口，请在 Electron 预加载层实现 devices API（见 docs/INTEGRATION.md）。',
+        recoverable: false
+      })
       return
     }
 
     const resolved = (config ?? {}) as BLEAdapterConfig
     this.updateStatus('pairing')
-
     this.cleanupFrame?.()
     this.cleanupStatus?.()
     this.cleanupError?.()
 
-    this.cleanupFrame = desktopDevices.onBLEFrame((frame) => {
+    this.cleanupFrame = bridge.onBLEFrame((frame) => {
       this.frameHandlers.forEach((handler) => handler(frame))
       if (frame.batteryLevel < 25) this.batteryHandlers.forEach((handler) => handler(frame.batteryLevel))
       if (frame.electrodeQuality < 55) this.electrodeHandlers.forEach((handler) => handler(2))
     })
-    this.cleanupStatus = desktopDevices.onBLEStatus((status) => {
-      this.updateStatus(status)
-    })
-    this.cleanupError = desktopDevices.onBLEError((message) => {
+    this.cleanupStatus = bridge.onBLEStatus((status) => this.updateStatus(status))
+    this.cleanupError = bridge.onBLEError((message) => {
       this.updateStatus('error')
-      this.emitError(new Error(message))
+      this.emitError({ code: 'ble_error', message, recoverable: true })
     })
 
-    await desktopDevices.connectBLE({
-      deviceId: resolved.deviceId,
+    await bridge.connectBLE({
+      deviceId: deviceId ?? resolved.deviceId,
       serviceUuid: resolved.serviceUuid,
       characteristicUuid: resolved.characteristicUuid
     })
@@ -56,17 +83,20 @@ export class BLEAdapter implements IDataSource {
   }
 
   async disconnect(): Promise<void> {
-    const desktopDevices = window.zhiwei?.desktop?.devices
-    if (desktopDevices) {
-      await desktopDevices.disconnectBLE()
-    }
+    const bridge = window.zhiwei?.desktop?.devices
+    if (bridge) await bridge.disconnectBLE()
     this.cleanupFrame?.()
     this.cleanupStatus?.()
     this.cleanupError?.()
     this.cleanupFrame = null
     this.cleanupStatus = null
     this.cleanupError = null
-    this.updateStatus('disconnected')
+    this.updateStatus('idle')
+  }
+
+  async sendControl(cmd: DeviceControlCommand): Promise<void> {
+    const bridge = window.zhiwei?.desktop?.devices
+    if (bridge?.sendBLEControl) await bridge.sendBLEControl(cmd)
   }
 
   onFrame(callback: (frame: EHGFrame) => void): () => void {
@@ -79,7 +109,7 @@ export class BLEAdapter implements IDataSource {
     return () => this.statusHandlers.delete(callback)
   }
 
-  onError(callback: (error: Error) => void): () => void {
+  onError(callback: (error: DeviceError) => void): () => void {
     this.errorHandlers.add(callback)
     return () => this.errorHandlers.delete(callback)
   }
@@ -103,7 +133,7 @@ export class BLEAdapter implements IDataSource {
     this.statusHandlers.forEach((handler) => handler(status))
   }
 
-  private emitError(error: Error) {
+  private emitError(error: DeviceError) {
     this.errorHandlers.forEach((handler) => handler(error))
   }
 }

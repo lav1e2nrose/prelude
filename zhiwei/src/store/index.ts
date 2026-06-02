@@ -1,21 +1,20 @@
 import { create } from 'zustand'
+import type { AuthSession, PatientProfile, UserRole } from '../types/user'
 
-export type PortalType = 'patient' | 'guardian' | 'doctor'
-
-export interface UserProfile {
-  username: string
-  displayName: string
-}
+// 角色即门户。一个账户对应且仅对应一个角色，会话期间不可切换；换角色须退出登录。
+export type PortalType = UserRole
 
 export interface AppState {
+  session: AuthSession | null
+  /** 受监测的孕妇档案（三端共享视角的数据来源；禁止组件内硬编码业务数据） */
+  patient: PatientProfile | null
+  /** 当前门户 = 会话角色。仅作只读派生，不提供运行时自由切换。 */
   portal: PortalType
   page: string
   loggedIn: boolean
-  userProfile: UserProfile | null
-  setPortal: (portal: PortalType) => void
-  setPage: (page: string) => void
-  login: (userProfile: UserProfile) => void
+  login: (session: AuthSession, patient: PatientProfile) => void
   logout: () => void
+  setPage: (page: string) => void
 }
 
 const defaultPageByPortal: Record<PortalType, string> = {
@@ -25,15 +24,28 @@ const defaultPageByPortal: Record<PortalType, string> = {
 }
 
 export const useAppStore = create<AppState>((set) => ({
+  session: null,
+  patient: null,
   portal: 'patient',
   page: defaultPageByPortal.patient,
   loggedIn: false,
-  userProfile: null,
-  setPortal: (portal) =>
-    set(() => ({ portal, page: defaultPageByPortal[portal] })),
-  setPage: (page) => set(() => ({ page })),
-  login: (userProfile) => set(() => ({ loggedIn: true, userProfile })),
-  logout: () => set(() => ({ loggedIn: false, userProfile: null }))
+  login: (session, patient) =>
+    set(() => ({
+      session,
+      patient,
+      loggedIn: true,
+      portal: session.role,
+      page: defaultPageByPortal[session.role]
+    })),
+  logout: () =>
+    set(() => ({
+      session: null,
+      patient: null,
+      loggedIn: false,
+      portal: 'patient',
+      page: defaultPageByPortal.patient
+    })),
+  setPage: (page) => set(() => ({ page }))
 }))
 
 export { useAlertsStore } from './alerts'
@@ -42,3 +54,4 @@ export { useMemorialStore } from './memorial'
 export { useMemorialWorkflowStore } from './memorialWorkflow'
 export { usePatientJournalStore } from './patientJournal'
 export { useRealtimeStore } from './realtime'
+export { useSettingsStore } from './settings'

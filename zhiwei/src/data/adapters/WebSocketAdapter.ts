@@ -1,4 +1,10 @@
-import type { IDataSource, ConnectionStatus } from '../IDataSource'
+import type {
+  ConnectionStatus,
+  DeviceControlCommand,
+  DeviceError,
+  DeviceInfo,
+  IDataSource
+} from '../IDataSource'
 import type { EHGFrame } from '../../types/signal'
 
 interface WebSocketAdapterConfig {
@@ -16,11 +22,11 @@ const defaultConfig: Required<Pick<WebSocketAdapterConfig, 'url' | 'reconnectInt
 }
 
 export class WebSocketAdapter implements IDataSource {
-  readonly name = 'WebSocketAdapter'
-  private _status: ConnectionStatus = 'disconnected'
+  readonly kind = 'websocket' as const
+  private _status: ConnectionStatus = 'idle'
   private frameHandlers = new Set<(frame: EHGFrame) => void>()
   private statusHandlers = new Set<(status: ConnectionStatus) => void>()
-  private errorHandlers = new Set<(error: Error) => void>()
+  private errorHandlers = new Set<(error: DeviceError) => void>()
   private batteryHandlers = new Set<(level: number) => void>()
   private electrodeHandlers = new Set<(channel: number) => void>()
   private ws: WebSocket | null = null
@@ -29,7 +35,13 @@ export class WebSocketAdapter implements IDataSource {
   private config: WebSocketAdapterConfig = defaultConfig
   private manualDisconnect = false
 
-  async connect(config?: Record<string, unknown>): Promise<void> {
+  async scan(): Promise<DeviceInfo[]> {
+    // 实时网关模式：设备由网关聚合，前端不直接扫描。返回逻辑网关条目。
+    return [{ deviceId: this.config.url ?? defaultConfig.url, model: '实时网关', firmware: 'gateway' }]
+  }
+
+  async connect(_deviceId?: string, config?: Record<string, unknown>): Promise<void> {
+    void _deviceId
     this.config = this.parseConfig(config)
     this.manualDisconnect = false
     this.clearReconnectTimer()
@@ -48,7 +60,13 @@ export class WebSocketAdapter implements IDataSource {
       this.ws = null
     }
     this.reconnectAttempts = 0
-    this.updateStatus('disconnected')
+    this.updateStatus('idle')
+  }
+
+  async sendControl(cmd: DeviceControlCommand): Promise<void> {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'control', cmd }))
+    }
   }
 
   onFrame(callback: (frame: EHGFrame) => void): () => void {
@@ -61,7 +79,7 @@ export class WebSocketAdapter implements IDataSource {
     return () => this.statusHandlers.delete(callback)
   }
 
-  onError(callback: (error: Error) => void): () => void {
+  onError(callback: (error: DeviceError) => void): () => void {
     this.errorHandlers.add(callback)
     return () => this.errorHandlers.delete(callback)
   }
@@ -95,7 +113,6 @@ export class WebSocketAdapter implements IDataSource {
       typeof input.maxReconnectAttempts === 'number' && Number.isFinite(input.maxReconnectAttempts)
         ? Math.max(0, Math.floor(input.maxReconnectAttempts))
         : defaultConfig.maxReconnectAttempts
-
     return {
       url: typeof input.url === 'string' && input.url.trim().length > 0 ? input.url.trim() : defaultConfig.url,
       protocols: input.protocols,
@@ -106,10 +123,7 @@ export class WebSocketAdapter implements IDataSource {
   }
 
   private async openSocket(): Promise<void> {
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-      return
-    }
-
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return
     this.updateStatus(this.reconnectAttempts > 0 ? 'reconnecting' : 'pairing')
     const socketUrl = this.buildSocketUrl(this.config.url ?? defaultConfig.url, this.config.authToken)
     const ws = new WebSocket(socketUrl, this.config.protocols)
@@ -119,7 +133,6 @@ export class WebSocketAdapter implements IDataSource {
       this.reconnectAttempts = 0
       this.updateStatus('connected')
     }
-
     ws.onmessage = (event: MessageEvent<string>) => {
       const frame = this.parseFrame(event.data)
       if (!frame) return
@@ -127,15 +140,13 @@ export class WebSocketAdapter implements IDataSource {
       if (frame.batteryLevel < 25) this.batteryHandlers.forEach((handler) => handler(frame.batteryLevel))
       if (frame.electrodeQuality < 55) this.electrodeHandlers.forEach((handler) => handler(2))
     }
-
     ws.onerror = () => {
-      this.emitError(new Error('WebSocket 连接发生错误，请检查服务端地址与网络。'))
+      this.emitError({ code: 'ws_error', message: 'WebSocket 连接发生错误，请检查服务端地址与网络。', recoverable: true })
     }
-
     ws.onclose = () => {
       this.ws = null
       if (this.manualDisconnect) {
-        this.updateStatus('disconnected')
+        this.updateStatus('idle')
         return
       }
       this.tryReconnect()
@@ -153,12 +164,12 @@ export class WebSocketAdapter implements IDataSource {
     try {
       const frame = JSON.parse(raw) as Partial<EHGFrame>
       if (!this.isFrame(frame)) {
-        this.emitError(new Error('收到无效帧结构，已忽略。'))
+        this.emitError({ code: 'bad_frame', message: '收到无效帧结构，已忽略。', recoverable: true })
         return null
       }
       return frame
     } catch (error) {
-      this.emitError(error instanceof Error ? error : new Error('解析实时帧失败'))
+      this.emitError({ code: 'parse_error', message: error instanceof Error ? error.message : '解析实时帧失败', recoverable: true })
       return null
     }
   }
@@ -180,10 +191,9 @@ export class WebSocketAdapter implements IDataSource {
     const maxAttempts = this.config.maxReconnectAttempts ?? defaultConfig.maxReconnectAttempts
     if (this.reconnectAttempts >= maxAttempts) {
       this.updateStatus('error')
-      this.emitError(new Error('WebSocket 重连次数已达上限。'))
+      this.emitError({ code: 'reconnect_exhausted', message: 'WebSocket 重连次数已达上限。', recoverable: false })
       return
     }
-
     this.reconnectAttempts += 1
     this.updateStatus('reconnecting')
     this.clearReconnectTimer()
@@ -199,7 +209,7 @@ export class WebSocketAdapter implements IDataSource {
     }
   }
 
-  private emitError(error: Error) {
+  private emitError(error: DeviceError) {
     this.errorHandlers.forEach((handler) => handler(error))
   }
 }

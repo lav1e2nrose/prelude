@@ -9,6 +9,19 @@ interface CollaborationStore {
   setGuardianEnRoute: (guardianId: string) => void
   markCannotRespond: (guardianId: string) => void
   escalate: (level: AlertCoordinationState['escalationStatus'], reason: string) => void
+  loadDemo: () => void
+  reset: () => void
+}
+
+const emptyCoordination: AlertCoordinationState = {
+  alertId: '',
+  notifiedGuardians: [],
+  acknowledgedGuardians: [],
+  enRouteGuardians: [],
+  cannotRespondGuardians: [],
+  primaryResponder: null,
+  escalationStatus: 'normal',
+  escalationTimeline: []
 }
 
 const guardians: GuardianMember[] = [
@@ -143,22 +156,24 @@ export const useCollaborationStore = create<CollaborationStore>((set) => ({
       { guardianId: 'guardian-wang', startTime: '18:00', endTime: '23:00', daysOfWeek: [1, 2, 3, 4, 5, 6, 0] }
     ]
   },
-  coordination: {
-    alertId: 'alert-002',
-    notifiedGuardians: ['guardian-chen', 'guardian-wang'],
-    acknowledgedGuardians: ['guardian-chen'],
-    enRouteGuardians: ['guardian-chen'],
-    cannotRespondGuardians: [],
-    primaryResponder: 'guardian-chen',
-    escalationStatus: 'normal',
-    escalationTimeline: [
-      {
-        level: 'normal',
-        reason: 'alert 触发后自动通知第一联系人',
-        timestamp: Date.now() - 1000 * 60 * 4
+  // 默认空：真实模式下无进行中的协作状态。演示数据经 loadDemo() 载入。
+  coordination: emptyCoordination,
+  loadDemo: () =>
+    set(() => ({
+      coordination: {
+        alertId: 'alert-002',
+        notifiedGuardians: ['guardian-chen', 'guardian-wang-mum'],
+        acknowledgedGuardians: ['guardian-chen'],
+        enRouteGuardians: ['guardian-chen'],
+        cannotRespondGuardians: [],
+        primaryResponder: 'guardian-chen',
+        escalationStatus: 'normal',
+        escalationTimeline: [
+          { level: 'normal', reason: 'alert 触发后自动通知第一联系人', timestamp: Date.now() - 1000 * 60 * 4 }
+        ]
       }
-    ]
-  },
+    })),
+  reset: () => set(() => ({ coordination: emptyCoordination })),
   acknowledgeByGuardian: (guardianId) =>
     set((state) => ({
       coordination: {

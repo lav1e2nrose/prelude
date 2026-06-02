@@ -1,4 +1,10 @@
-import type { IDataSource, ConnectionStatus } from '../IDataSource'
+import type {
+  ConnectionStatus,
+  DeviceControlCommand,
+  DeviceError,
+  DeviceInfo,
+  IDataSource
+} from '../IDataSource'
 import type { EHGFrame } from '../../types/signal'
 
 interface MockAdapterConfig {
@@ -106,26 +112,35 @@ const toNumber = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback
 
 export class MockAdapter implements IDataSource {
-  readonly name = 'MockAdapter'
-  private _status: ConnectionStatus = 'disconnected'
+  readonly kind = 'mock' as const
+  private _status: ConnectionStatus = 'idle'
   private timer: ReturnType<typeof setInterval> | null = null
   private frameHandlers = new Set<(frame: EHGFrame) => void>()
   private statusHandlers = new Set<(status: ConnectionStatus) => void>()
-  private errorHandlers = new Set<(error: Error) => void>()
+  private errorHandlers = new Set<(error: DeviceError) => void>()
   private batteryHandlers = new Set<(level: number) => void>()
   private electrodeHandlers = new Set<(channel: number) => void>()
   private tick = 0
+  private seq = 0
+  private scenario = 'scenario_normal'
 
-  async connect(config?: Record<string, unknown>): Promise<void> {
+  async scan(): Promise<DeviceInfo[]> {
+    return [{ deviceId: 'mock-device-001', model: '知微 Mock 设备', firmware: 'mock-1.0', rssi: -42 }]
+  }
+
+  async connect(_deviceId?: string, config?: Record<string, unknown>): Promise<void> {
+    void _deviceId
     const mockConfig = (config ?? {}) as MockAdapterConfig
-    const scenario = mockConfig.scenario ?? 'scenario_normal'
-    const profile = scenarioProfiles[scenario] ?? scenarioProfiles.scenario_normal
+    this.scenario = mockConfig.scenario ?? 'scenario_normal'
+    const profile = scenarioProfiles[this.scenario] ?? scenarioProfiles.scenario_normal
     const intervalMs = Math.max(200, toNumber(mockConfig.intervalMs, defaultIntervalMs))
     await this.disconnect()
     this.updateStatus('mock')
     this.tick = 0
+    this.seq = 0
     this.timer = setInterval(() => {
       this.tick += 1
+      this.seq += 1
       const frame = this.createFrame(profile, this.tick)
       this.frameHandlers.forEach((handler) => handler(frame))
       if (frame.batteryLevel < 25) this.batteryHandlers.forEach((handler) => handler(frame.batteryLevel))
@@ -136,7 +151,11 @@ export class MockAdapter implements IDataSource {
   async disconnect(): Promise<void> {
     if (this.timer) clearInterval(this.timer)
     this.timer = null
-    this.updateStatus('disconnected')
+    this.updateStatus('idle')
+  }
+
+  async sendControl(_cmd: DeviceControlCommand): Promise<void> {
+    void _cmd
   }
 
   onFrame(callback: (frame: EHGFrame) => void): () => void {
@@ -149,7 +168,7 @@ export class MockAdapter implements IDataSource {
     return () => this.statusHandlers.delete(callback)
   }
 
-  onError(callback: (error: Error) => void): () => void {
+  onError(callback: (error: DeviceError) => void): () => void {
     this.errorHandlers.add(callback)
     return () => this.errorHandlers.delete(callback)
   }
@@ -178,6 +197,10 @@ export class MockAdapter implements IDataSource {
     const trend = Math.cos(tick / 8)
     const motionFactor = profile.movementChance > Math.random() ? 1 : 0.25
     return {
+      schemaVersion: 1,
+      deviceId: 'mock-device-001',
+      seq: this.seq,
+      sampleRateHz: 20,
       timestamp: Date.now(),
       ehg: Array.from({ length: 4 }, (_unused, index) => {
         const phase = tick / (4 + index * 2)

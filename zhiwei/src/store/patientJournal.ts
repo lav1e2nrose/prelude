@@ -49,6 +49,10 @@ interface PatientJournalStore {
   addTimelineEvent: (title: string, detail: string, timestamp?: number) => void
   startMonitoring: () => void
   stopMonitoring: () => number | null
+  /** 载入演示数据（仅演示模式调用） */
+  loadDemo: () => void
+  /** 清空全部记录（切回真实模式时调用，避免真实模式残留模拟数据） */
+  reset: () => void
 }
 
 const now = Date.now()
@@ -104,11 +108,26 @@ const toTimeLabel = (timestamp: number) =>
   new Date(timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 
 export const usePatientJournalStore = create<PatientJournalStore>((set, get) => ({
-  contractions: initialContractions,
-  fetalMovements: initialMovements,
-  timeline: initialTimeline,
+  // 默认空：真实模式下不展示任何模拟数据。演示数据经 loadDemo() 载入。
+  contractions: [],
+  fetalMovements: [],
+  timeline: [],
   monitorSessions: [],
   activeMonitoringStartedAt: null,
+  loadDemo: () =>
+    set(() => ({
+      contractions: initialContractions,
+      fetalMovements: initialMovements,
+      timeline: initialTimeline
+    })),
+  reset: () =>
+    set(() => ({
+      contractions: [],
+      fetalMovements: [],
+      timeline: [],
+      monitorSessions: [],
+      activeMonitoringStartedAt: null
+    })),
   addContraction: ({ timestamp = Date.now(), durationSec, intensity, source }) => {
     const id = makeId('contraction')
     const normalizedDuration = Math.max(10, Math.min(240, Math.round(durationSec)))

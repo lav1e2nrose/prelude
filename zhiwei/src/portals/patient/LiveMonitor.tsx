@@ -4,6 +4,10 @@ import { ContractionHeatmap } from '../../components/charts/ContractionHeatmap'
 import { EHGWaveformChart } from '../../components/charts/EHGWaveformChart'
 import { StatusOrb } from '../../components/shared/StatusOrb'
 import { useMemorialStore, usePatientJournalStore, useRealtimeStore } from '../../store'
+import { confirmDialog } from '../../store/dialog'
+import { toast } from '../../store/toast'
+import { ContractionLog } from './ContractionLog'
+import { FetalMovementCounter } from './FetalMovementCounter'
 
 const postureLabelMap: Record<string, string> = {
   standing: '站立',
@@ -23,7 +27,10 @@ const formatDuration = (seconds: number) => {
 
 export const LiveMonitor = () => {
   const [viewMode, setViewMode] = useState<'soft' | 'pro'>('soft')
+  const [section, setSection] = useState<'live' | 'contractions' | 'movements'>('live')
   const [now, setNow] = useState(() => Date.now())
+  const contractionsCount = usePatientJournalStore((state) => state.contractions.length)
+  const movementsCount = usePatientJournalStore((state) => state.fetalMovements.length)
   const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
   const dataSourceType = useRealtimeStore((state) => state.dataSourceType)
   const connectionStatus = useRealtimeStore((state) => state.connectionStatus)
@@ -31,8 +38,10 @@ export const LiveMonitor = () => {
   const frameBuffer = useRealtimeStore((state) => state.frameBuffer)
   const lastFrameLatencyMs = useRealtimeStore((state) => state.lastFrameLatencyMs)
   const lastError = useRealtimeStore((state) => state.lastError)
+  const riskUnavailable = useRealtimeStore((state) => state.riskUnavailable)
   const connect = useRealtimeStore((state) => state.connect)
   const disconnect = useRealtimeStore((state) => state.disconnect)
+  const orbLevel = !latestFrame || riskUnavailable ? 'unknown' : latestFrame.riskLevel
 
   const activeMonitoringStartedAt = usePatientJournalStore((state) => state.activeMonitoringStartedAt)
   const startMonitoring = usePatientJournalStore((state) => state.startMonitoring)
@@ -47,7 +56,8 @@ export const LiveMonitor = () => {
   }, [])
 
   const sourceStatusLabel: Record<typeof connectionStatus, string> = {
-    disconnected: '未连接',
+    idle: '未连接',
+    scanning: '扫描设备中',
     pairing: '连接中',
     connected: '已连接',
     reconnecting: '重连中',
@@ -61,19 +71,28 @@ export const LiveMonitor = () => {
   }, [activeMonitoringStartedAt, now])
 
   const isMonitoring = activeMonitoringStartedAt !== null
+  const isConnecting = connectionStatus === 'scanning' || connectionStatus === 'pairing' || connectionStatus === 'reconnecting'
+  const isConnected = connectionStatus === 'connected' || connectionStatus === 'mock'
   const handleConnect = async () => {
     await connect()
     const status = useRealtimeStore.getState().connectionStatus
     if ((status === 'connected' || status === 'mock') && !usePatientJournalStore.getState().activeMonitoringStartedAt) {
       startMonitoring()
+      toast.success('监测已开始', '实时采样与风险评估已启动')
+    } else if (status === 'error') {
+      toast.alert('连接失败', useRealtimeStore.getState().lastError ?? '请检查设备或在设置中启用演示模式')
     }
   }
 
   const handleDisconnect = async () => {
     if (!memorialEnabled && isMonitoring && monitorDuration < 40 * 60) {
-      const shouldStop = window.confirm(
-        `本次监测仅 ${Math.round(monitorDuration / 60)} 分钟，建议至少 40 分钟。确定结束吗？`
-      )
+      const shouldStop = await confirmDialog({
+        title: '确定结束本次监测吗？',
+        body: `本次监测仅 ${Math.round(monitorDuration / 60)} 分钟，建议至少 40 分钟以获得可靠的风险评估。`,
+        confirmText: '结束监测',
+        cancelText: '继续监测',
+        tone: 'danger'
+      })
       if (!shouldStop) {
         addTimelineEvent('继续监测', '用户取消提前结束操作')
         return
@@ -84,11 +103,46 @@ export const LiveMonitor = () => {
     const duration = stopMonitoring()
     if (duration !== null) {
       addTimelineEvent('监测结束确认', `本次监测 ${Math.round(duration / 60)} 分钟`)
+      toast.info('监测已结束', `本次监测 ${Math.round(duration / 60)} 分钟，数据已保存`)
     }
   }
 
+  const sectionTabs = [
+    { key: 'live' as const, label: '实时监测', hint: isConnected ? '采集中' : '未连接' },
+    { key: 'contractions' as const, label: '宫缩记录', hint: `${contractionsCount} 条` },
+    { key: 'movements' as const, label: '胎动计数', hint: `${movementsCount} 次` }
+  ]
+
   return (
-    <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+    <div className="space-y-4">
+      {/* 卡片式分段：实时监测 / 宫缩记录 / 胎动计数 */}
+      <div className="grid grid-cols-3 gap-2">
+        {sectionTabs.map((tab) => {
+          const active = section === tab.key
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setSection(tab.key)}
+              className={`rounded-[var(--radius-card)] border px-4 py-3 text-left transition active:scale-[0.98] ${
+                active
+                  ? 'border-[var(--accent)]/60 bg-[var(--accent-dim)] shadow-[0_8px_24px_rgba(0,0,0,0.2)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--bg-1)] hover:border-[var(--border-default)]'
+              }`}
+            >
+              <div className={`text-sm font-semibold ${active ? 'text-[var(--text-primary)]' : 'text-slate-300'}`}>{tab.label}</div>
+              <div className="mt-1 text-xs text-slate-400">{tab.hint}</div>
+            </button>
+          )
+        })}
+      </div>
+
+      {section === 'contractions' ? (
+        <ContractionLog />
+      ) : section === 'movements' ? (
+        <FetalMovementCounter />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
       <div className="space-y-4">
         <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -116,8 +170,25 @@ export const LiveMonitor = () => {
           </div>
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-3">
-            <div className="text-sm text-slate-300">监测中 ● {formatDuration(monitorDuration)}</div>
-            <StatusOrb level={latestFrame?.riskLevel ?? 'attention'} label={memorialEnabled ? '当前数据状态' : '实时风险状态'} />
+            <div className="flex items-center gap-2 text-sm text-slate-300">
+              {isMonitoring && isConnected ? (
+                <>
+                  <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" style={{ animation: 'orb-pulse 2s ease-in-out infinite', ['--orb-glow' as string]: 'var(--safe-glow)' }} />
+                  监测中 · {formatDuration(monitorDuration)}
+                </>
+              ) : isConnecting ? (
+                <>
+                  <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-sky-400" />
+                  {connectionStatus === 'scanning' ? '扫描设备中…' : '连接中…'}
+                </>
+              ) : (
+                <>
+                  <span className="inline-flex h-2 w-2 rounded-full bg-slate-500" />
+                  未在监测
+                </>
+              )}
+            </div>
+            <StatusOrb level={orbLevel} label={memorialEnabled ? '当前数据状态' : '实时风险状态'} />
           </div>
 
           {viewMode === 'soft' ? (
@@ -184,7 +255,7 @@ export const LiveMonitor = () => {
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-xs uppercase tracking-[0.3em] text-slate-400">实时摘要</div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <StatusOrb level={latestFrame?.riskLevel ?? 'attention'} label={memorialEnabled ? '当前数据状态' : '实时风险状态'} />
+            <StatusOrb level={orbLevel} label={memorialEnabled ? '当前数据状态' : '实时风险状态'} />
             <div className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-1 text-xs text-slate-300">
               数据延迟 {lastFrameLatencyMs === null ? '--' : `${(lastFrameLatencyMs / 1000).toFixed(1)}s`}
             </div>
@@ -225,10 +296,12 @@ export const LiveMonitor = () => {
 
         {memorialEnabled ? null : (
           <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4 text-xs text-slate-300">
-            监测提示：若宫缩间隔持续缩短，可点击“宫缩记录”页面进行手动标记，便于医生复核。
+            监测提示：若宫缩间隔持续缩短，可切换到上方“宫缩记录”进行手动标记，便于医生复核。
           </div>
         )}
       </div>
+        </div>
+      )}
     </div>
   )
 }

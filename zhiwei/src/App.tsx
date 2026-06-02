@@ -5,37 +5,33 @@ import { PatientSupportRail } from './components/layout/PatientSupportRail'
 import { Sidebar, type SidebarItem } from './components/layout/Sidebar'
 import { DesktopOnlyScreen } from './pages/DesktopOnlyScreen'
 import { LoginScreen } from './pages/LoginScreen'
-import { AlgorithmFeedback } from './portals/doctor/AlgorithmFeedback'
-import { ContractionHeatmapPage } from './portals/doctor/ContractionHeatmapPage'
+import { DoctorAlgorithm } from './portals/doctor/DoctorAlgorithm'
+import { DoctorMonitoring } from './portals/doctor/DoctorMonitoring'
 import { DoctorSettings } from './portals/doctor/DoctorSettings'
 import { ModelVersionManagement } from './portals/doctor/ModelVersionManagement'
-import { OverridePanel } from './portals/doctor/OverridePanel'
 import { PatientList } from './portals/doctor/PatientList'
 import { ReportGenerator } from './portals/doctor/ReportGenerator'
-import { WaveformReview } from './portals/doctor/WaveformReview'
 import { AlertHistory } from './portals/guardian/AlertHistory'
 import { AtAGlance } from './portals/guardian/AtAGlance'
 import { CoordinationView } from './portals/guardian/CoordinationView'
 import { EmergencyResponse } from './portals/guardian/EmergencyResponse'
 import { GuardianSettings } from './portals/guardian/GuardianSettings'
 import { TeamManagement } from './portals/guardian/TeamManagement'
-import { ContractionLog } from './portals/patient/ContractionLog'
-import { FetalMovementCounter } from './portals/patient/FetalMovementCounter'
 import { HealthClass } from './portals/patient/HealthClass'
 import { HomeStatus } from './portals/patient/HomeStatus'
 import { LiveMonitor } from './portals/patient/LiveMonitor'
 import { PatientSettings } from './portals/patient/PatientSettings'
 import { PrenatalCalendar } from './portals/patient/PrenatalCalendar'
-import { type PortalType, useAppStore, useMemorialStore, useMemorialWorkflowStore } from './store'
+import { type PortalType, useAppStore, useMemorialStore, useMemorialWorkflowStore, useRealtimeStore, useSettingsStore } from './store'
+import { applyDemoMode } from './store/demo'
+import { toast } from './store/toast'
 
 const RETENTION_CHECK_INTERVAL_MS = 30 * 1000
 
 const portalNav: Record<PortalType, SidebarItem[]> = {
   patient: [
     { id: 'HomeStatus', label: '首页状态', description: '当前风险与提醒' },
-    { id: 'LiveMonitor', label: '实时监测' },
-    { id: 'ContractionLog', label: '宫缩记录' },
-    { id: 'FetalMovementCounter', label: '胎动计数' },
+    { id: 'LiveMonitor', label: '实时监测', description: '监测 · 宫缩 · 胎动' },
     { id: 'PrenatalCalendar', label: '产检日历' },
     { id: 'HealthClass', label: '健康课堂' },
     { id: 'PatientSettings', label: '设置' }
@@ -50,12 +46,10 @@ const portalNav: Record<PortalType, SidebarItem[]> = {
   ],
   doctor: [
     { id: 'PatientList', label: '患者列表' },
-    { id: 'ContractionHeatmapPage', label: '宫缩热图' },
-    { id: 'WaveformReview', label: '波形复核' },
+    { id: 'DoctorMonitoring', label: '宫缩与波形', description: '热图 · EHG 波形' },
     { id: 'ReportGenerator', label: '报告生成' },
-    { id: 'AlgorithmFeedback', label: '算法反馈' },
+    { id: 'DoctorAlgorithm', label: '算法与审核', description: '人工审核 · 反馈队列' },
     { id: 'ModelVersionManagement', label: '模型版本' },
-    { id: 'OverridePanel', label: '医生覆盖' },
     { id: 'DoctorSettings', label: '设置' }
   ]
 }
@@ -64,8 +58,6 @@ const portalPages: Record<PortalType, Record<string, ReactNode>> = {
   patient: {
     HomeStatus: <HomeStatus />,
     LiveMonitor: <LiveMonitor />,
-    ContractionLog: <ContractionLog />,
-    FetalMovementCounter: <FetalMovementCounter />,
     PrenatalCalendar: <PrenatalCalendar />,
     HealthClass: <HealthClass />,
     PatientSettings: <PatientSettings />
@@ -80,12 +72,10 @@ const portalPages: Record<PortalType, Record<string, ReactNode>> = {
   },
   doctor: {
     PatientList: <PatientList />,
-    ContractionHeatmapPage: <ContractionHeatmapPage />,
-    WaveformReview: <WaveformReview />,
+    DoctorMonitoring: <DoctorMonitoring />,
     ReportGenerator: <ReportGenerator />,
-    AlgorithmFeedback: <AlgorithmFeedback />,
+    DoctorAlgorithm: <DoctorAlgorithm />,
     ModelVersionManagement: <ModelVersionManagement />,
-    OverridePanel: <OverridePanel />,
     DoctorSettings: <DoctorSettings />
   }
 }
@@ -131,6 +121,23 @@ export const App = () => {
     return () => window.clearInterval(timer)
   }, [processRetentionDeadline])
 
+  // 退出登录时断开设备与算法订阅，清理敏感实时数据（PART 12 交互正确性）
+  useEffect(() => {
+    if (!loggedIn) {
+      void useRealtimeStore.getState().disconnect()
+      return
+    }
+    const session = useAppStore.getState().session
+    if (session) {
+      const roleLabel = session.role === 'patient' ? '孕妇端' : session.role === 'guardian' ? '家属端' : '医生端'
+      toast.info(`欢迎回来，${session.displayName}`, `已以${roleLabel}身份登录`)
+    }
+    // 演示模式：登录后自动接入 mock 数据源+算法并载入三端演示数据（波形/日志/警报立即可见）
+    if (useSettingsStore.getState().demoMode) {
+      applyDemoMode(true)
+    }
+  }, [loggedIn])
+
   useEffect(() => {
     if (!runtimeReady || !isDesktop) {
       document.documentElement.setAttribute('data-theme', 'pro')
@@ -169,6 +176,7 @@ export const App = () => {
 
   return (
     <AppShell
+      pageKey={`${portal}:${page}`}
       sidebar={<Sidebar items={items} activeId={page} onSelect={setPage} />}
       rightRail={portal === 'patient' && !memorialEnabled ? <PatientSupportRail /> : undefined}
     >

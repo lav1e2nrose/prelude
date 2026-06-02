@@ -2,12 +2,19 @@ import { useMemo, useState } from 'react'
 import { FalsePositiveFeedback } from '../../components/shared/FalsePositiveFeedback'
 import { MemorialModeBanner } from '../../components/shared/MemorialModeBanner'
 import { StatusOrb } from '../../components/shared/StatusOrb'
+import { RiskGauge } from '../../components/charts/RiskGauge'
 import { useAlertsStore, useAppStore, useMemorialStore, useMemorialWorkflowStore, usePatientJournalStore, useRealtimeStore } from '../../store'
+import { computeGestationalAge, formatDaysUntilDue, formatGestationalAge } from '../../utils/gestational'
+import { toast } from '../../store/toast'
 
 const formatDelta = (value: number) => (value > 0 ? `+${value.toFixed(1)}%` : `${value.toFixed(1)}%`)
 
 export const HomeStatus = () => {
   const [showProfessional, setShowProfessional] = useState(false)
+  const [symptomOpen, setSymptomOpen] = useState(false)
+  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([])
+  const [customSymptom, setCustomSymptom] = useState('')
+  const [symptomSeverity, setSymptomSeverity] = useState<'轻微' | '中等' | '明显'>('轻微')
   const memorialEnabled = useMemorialStore((state) => state.memorial.enabled)
   const patientVisibleNotice = useMemorialWorkflowStore((state) => state.patientVisibleNotice)
   const patientDelegationPendingChoice = useMemorialWorkflowStore((state) => state.patientDelegationPendingChoice)
@@ -23,7 +30,10 @@ export const HomeStatus = () => {
   const addTimelineEvent = usePatientJournalStore((state) => state.addTimelineEvent)
   const latestAlert = alerts[0]
   const pendingAlerts = alerts.filter((alert) => !alert.acknowledged).length
-  const displayName = useAppStore((state) => state.userProfile?.displayName ?? '用户')
+  const patient = useAppStore((state) => state.patient)
+  const riskUnavailable = useRealtimeStore((state) => state.riskUnavailable)
+  const displayName = patient?.displayName ?? '用户'
+  const age = patient ? computeGestationalAge(patient.dueDate) : null
 
   const startOfDay = useMemo(() => {
     const now = new Date()
@@ -46,19 +56,34 @@ export const HomeStatus = () => {
     })
     .join(' ')
 
-  const risk24h = latestFrame?.features.pretermProbability24h ?? 2.1
-  const risk7d = latestFrame?.features.pretermProbability7d ?? 5.8
-  const prevRisk24h = frameBuffer.at(-2)?.features.pretermProbability24h ?? risk24h
-  const prevRisk7d = frameBuffer.at(-2)?.features.pretermProbability7d ?? risk7d
+  // 概率为 0-1，展示为百分比
+  const risk24h = latestFrame ? latestFrame.features.pretermProbability24h * 100 : 0
+  const risk7d = latestFrame ? latestFrame.features.pretermProbability7d * 100 : 0
+  const prevFrame = frameBuffer.at(-2)
+  const prevRisk24h = prevFrame ? prevFrame.features.pretermProbability24h * 100 : risk24h
+  const prevRisk7d = prevFrame ? prevFrame.features.pretermProbability7d * 100 : risk7d
 
+  const orbLevel = !latestFrame || riskUnavailable ? 'unknown' : latestFrame.riskLevel
   const statusCopy =
-    latestFrame?.riskLevel === 'safe'
-      ? '平稳'
-      : latestFrame?.riskLevel === 'attention'
-        ? '需关注'
-        : latestFrame?.riskLevel === 'alert'
-          ? '风险升高'
-          : '紧急'
+    orbLevel === 'unknown'
+      ? '等待监测数据'
+      : orbLevel === 'safe'
+        ? '平稳'
+        : orbLevel === 'attention'
+          ? '需关注'
+          : orbLevel === 'alert'
+            ? '风险升高'
+            : '紧急'
+
+  const gaugeScore = orbLevel === 'unknown' ? null : Math.round(risk7d)
+  const gaugeSub =
+    orbLevel === 'unknown'
+      ? '连接设备并开始监测后，这里显示 7 日早产风险'
+      : orbLevel === 'safe'
+        ? '7 日早产风险 · 当前处于低风险区间'
+        : orbLevel === 'attention'
+          ? '7 日早产风险 · 建议持续观察'
+          : '7 日早产风险 · 建议联系医生'
 
   if (memorialEnabled) {
     return (
@@ -110,24 +135,25 @@ export const HomeStatus = () => {
   return (
     <div className="space-y-6">
       <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)]/95 p-5 shadow-[var(--shadow-card)]">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
           <div>
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-400">首页状态</div>
-            <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">上午好，{displayName}</div>
-            <p className="mt-2 text-sm text-slate-300">孕 32 周 + 3 天 · 距离预产期还有 7 周 + 4 天</p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
-              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1">
-                待处理预警 {pendingAlerts} 条
-              </span>
-              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1">
-                今日宫缩 {todayContractions.length} 次
-              </span>
-              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1">
-                今日胎动 {todayFetalMovements.length} 次
-              </span>
+            <div className="text-xs uppercase tracking-[0.3em] text-slate-400">实时风险状态</div>
+            <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">您好，{displayName}</div>
+            <p className="mt-2 text-sm text-slate-300">
+              {age ? `${formatGestationalAge(age)} · ${formatDaysUntilDue(age)}` : '档案加载中…'}
+            </p>
+            <div className="mt-4">
+              <StatusOrb level={orbLevel} label={statusCopy} />
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2.5 py-1">待处理预警 {pendingAlerts} 条</span>
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2.5 py-1">今日宫缩 {todayContractions.length} 次</span>
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2.5 py-1">今日胎动 {todayFetalMovements.length} 次</span>
             </div>
           </div>
-          <StatusOrb level={latestAlert?.level ?? latestFrame?.riskLevel ?? 'attention'} label={`实时风险状态 · ${statusCopy}`} />
+          <div className="flex justify-center md:justify-end">
+            <RiskGauge level={orbLevel} score={gaugeScore} statusText={statusCopy} subText={gaugeSub} size={236} />
+          </div>
         </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-[1.6fr_1fr]">
@@ -158,18 +184,17 @@ export const HomeStatus = () => {
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <button
             type="button"
-            onClick={() => {
-              addTimelineEvent('症状记录', '患者主动记录：腹部紧绷（约 3 分钟）')
-            }}
+            onClick={() => setSymptomOpen(true)}
             className="min-h-[52px] rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-2 text-sm text-slate-200 transition hover:border-[var(--border-default)]"
           >
-            记录症状：腹部紧绷
+            记录症状…
           </button>
           <button
             type="button"
             onClick={() => {
               requestSupportHelp()
               addTimelineEvent('联系支持', '用户主动发起一次人工复核请求')
+              toast.info('已发起人工复核', '工作人员会尽快与您联系')
             }}
             className="min-h-[52px] rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-4 py-2 text-sm text-slate-200 transition hover:border-[var(--border-default)]"
           >
@@ -186,6 +211,11 @@ export const HomeStatus = () => {
         </button>
 
         {showProfessional ? (
+          riskUnavailable ? (
+            <div className="mt-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 p-4 text-xs leading-6 text-slate-400">
+              等待算法服务接入后显示早产概率与特征参数。当前仅展示设备采集的原始信号，风险评估由算法端给出。
+            </div>
+          ) : (
           <div className="mt-3 grid gap-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 p-4 md:grid-cols-2">
             <div>
               <div className="text-xs text-slate-400">当前 24h 早产概率</div>
@@ -208,6 +238,7 @@ export const HomeStatus = () => {
             <div className="text-xs text-slate-300">中值频率：{latestFrame?.features.medianFrequency.toFixed(2) ?? '0.38'} Hz</div>
             <div className="text-xs text-slate-300">链路状态：{connectionStatus}</div>
           </div>
+          )
         ) : null}
       </section>
 
@@ -227,17 +258,84 @@ export const HomeStatus = () => {
         </section>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
-          <div className="text-xs uppercase tracking-[0.3em] text-slate-400">今日监测计划</div>
-          <ul className="mt-3 space-y-2 text-sm text-slate-300">
-            <li>14:00-16:00 卧床休息，保持左侧卧</li>
-            <li>18:30 进行 15 分钟呼吸训练</li>
-            <li>22:00 发送晚间状态给家属与医生</li>
-          </ul>
-        </div>
-        <MemorialModeBanner defaultExpandedWhenEnabled />
+      <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+        <div className="text-xs uppercase tracking-[0.3em] text-slate-400">今日监测计划</div>
+        <ul className="mt-3 grid gap-2 text-sm text-slate-300 md:grid-cols-3">
+          <li>14:00-16:00 卧床休息，保持左侧卧</li>
+          <li>18:30 进行 15 分钟呼吸训练</li>
+          <li>22:00 发送晚间状态给家属与医生</li>
+        </ul>
       </div>
+
+      {/* 症状记录：多选 + 自定义 + 强度 */}
+      {symptomOpen ? (
+        <div className="overlay-in fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm" onClick={() => setSymptomOpen(false)}>
+          <div className="modal-in w-full max-w-lg rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-6 shadow-[var(--shadow-card)]" onClick={(e) => e.stopPropagation()}>
+            <div className="text-lg font-semibold text-[var(--text-primary)]">记录症状</div>
+            <p className="mt-1 text-xs text-slate-400">选择您此刻的感受（可多选），将加入今日时间线并同步医生端。</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {['腹部紧绷', '下腹坠胀', '腰酸背痛', '规律宫缩', '见红 / 出血', '阴道流液', '胎动减少', '胎动频繁', '头晕头痛', '恶心呕吐', '下肢水肿'].map((s) => {
+                const active = selectedSymptoms.includes(s)
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSelectedSymptoms((prev) => (active ? prev.filter((x) => x !== s) : [...prev, s]))}
+                    className={`rounded-full border px-3 py-1.5 text-xs transition ${active ? 'border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--text-primary)]' : 'border-[var(--border-subtle)] bg-[var(--bg-2)] text-slate-300 hover:border-[var(--border-default)]'}`}
+                  >
+                    {s}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mt-4">
+              <div className="text-xs text-slate-400">补充描述（可选）</div>
+              <textarea
+                value={customSymptom}
+                onChange={(e) => setCustomSymptom(e.target.value)}
+                placeholder="如：持续约 3 分钟，平卧后缓解…"
+                className="mt-2 h-20 w-full resize-none rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+              />
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+              程度：
+              {(['轻微', '中等', '明显'] as const).map((lvl) => (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => setSymptomSeverity(lvl)}
+                  className={`rounded-full border px-2.5 py-1 transition ${symptomSeverity === lvl ? 'border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--text-primary)]' : 'border-[var(--border-subtle)] text-slate-400'}`}
+                >
+                  {lvl}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button type="button" onClick={() => setSymptomOpen(false)} className="min-h-[44px] flex-1 rounded-[var(--radius-control)] border border-[var(--border-subtle)] text-sm text-slate-200 transition hover:bg-[var(--bg-2)]">
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={selectedSymptoms.length === 0 && customSymptom.trim().length === 0}
+                onClick={() => {
+                  const parts = [...selectedSymptoms]
+                  if (customSymptom.trim()) parts.push(customSymptom.trim())
+                  addTimelineEvent('症状记录', `患者记录（${symptomSeverity}）：${parts.join('、')}`)
+                  toast.success('已记录症状', `${parts.join('、')} 已同步医生端`)
+                  setSelectedSymptoms([])
+                  setCustomSymptom('')
+                  setSymptomSeverity('轻微')
+                  setSymptomOpen(false)
+                }}
+                className="min-h-[44px] flex-1 rounded-[var(--radius-control)] bg-[var(--accent)] text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-40"
+              >
+                记录
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <footer className="pt-2">
         <button
           type="button"

@@ -1,9 +1,14 @@
 import { useMemo, useState } from 'react'
-import { EmergencyOverlay } from '../../components/shared/EmergencyOverlay'
 import { MemorialModeBanner } from '../../components/shared/MemorialModeBanner'
-import { mockScenarios } from '../../data/mockScenarios'
 import { type AdverseOutcomeType } from '../../types/memorial'
-import { useMemorialStore, useMemorialWorkflowStore, useRealtimeStore } from '../../store'
+import {
+  useMemorialStore,
+  useMemorialWorkflowStore,
+  useSettingsStore
+} from '../../store'
+import { applyDemoMode } from '../../store/demo'
+import { confirmDialog } from '../../store/dialog'
+import { toast } from '../../store/toast'
 import { useCollaborationStore } from '../../store/collaboration'
 
 const outcomeOptions: Array<{ value: AdverseOutcomeType | 'skip'; label: string }> = [
@@ -19,16 +24,15 @@ const outcomeOptions: Array<{ value: AdverseOutcomeType | 'skip'; label: string 
 
 export const PatientSettings = () => {
   const memorial = useMemorialStore((state) => state.memorial)
-  const dataSourceType = useRealtimeStore((state) => state.dataSourceType)
-  const sourceConfig = useRealtimeStore((state) => state.sourceConfig)
-  const patchSourceConfig = useRealtimeStore((state) => state.patchSourceConfig)
-  const setDataSourceType = useRealtimeStore((state) => state.setDataSourceType)
+  const demoMode = useSettingsStore((state) => state.demoMode)
+  const setDemoMode = useSettingsStore((state) => state.setDemoMode)
+  const setNotifications = useSettingsStore((state) => state.setNotifications)
+  const notifications = useSettingsStore((state) => state.notifications)
 
   const inactivityDays = useMemorialWorkflowStore((state) => state.inactivityDays)
   const passivePromptVisible = useMemorialWorkflowStore((state) => state.passivePromptVisible)
   const passiveEmailSent = useMemorialWorkflowStore((state) => state.passiveEmailSent)
   const historyAccessConfirmed = useMemorialWorkflowStore((state) => state.historyAccessConfirmed)
-  const pendingHistoryConfirm = useMemorialWorkflowStore((state) => state.pendingHistoryConfirm)
   const deletionState = useMemorialWorkflowStore((state) => state.deletionState)
   const hardDeleteAt = useMemorialWorkflowStore((state) => state.hardDeleteAt)
   const legalRetentionYears = useMemorialWorkflowStore((state) => state.legalRetentionYears)
@@ -38,105 +42,130 @@ export const PatientSettings = () => {
   const triggerLog = useMemorialWorkflowStore((state) => state.triggerLog)
   const setInactivityDays = useMemorialWorkflowStore((state) => state.setInactivityDays)
   const requestHistoryAccess = useMemorialWorkflowStore((state) => state.requestHistoryAccess)
-  const cancelHistoryAccess = useMemorialWorkflowStore((state) => state.cancelHistoryAccess)
   const confirmHistoryAccess = useMemorialWorkflowStore((state) => state.confirmHistoryAccess)
   const triggerPatientInitiatedMemorial = useMemorialWorkflowStore((state) => state.triggerPatientInitiatedMemorial)
   const recoverSoftDeletedData = useMemorialWorkflowStore((state) => state.recoverSoftDeletedData)
   const startNewPregnancy = useMemorialWorkflowStore((state) => state.startNewPregnancy)
   const requestSupportHelp = useMemorialWorkflowStore((state) => state.requestSupportHelp)
-  const primaryContactName = useCollaborationStore((state) => state.guardians.find((guardian) => guardian.isPrimaryContact)?.name ?? '未设置')
+  const primaryContactName = useCollaborationStore(
+    (state) => state.guardians.find((g) => g.isPrimaryContact)?.name ?? '未设置'
+  )
 
-  const [dailySummary, setDailySummary] = useState(true)
-  const [postureReminder, setPostureReminder] = useState(true)
-  const [nightMode, setNightMode] = useState(false)
   const [entryVisible, setEntryVisible] = useState(false)
   const [entryChoice, setEntryChoice] = useState<'pause_keep_data' | 'export_and_delete' | 'not_ready'>('pause_keep_data')
   const [outcomeType, setOutcomeType] = useState<AdverseOutcomeType | 'skip'>('skip')
   const [newPregnancyChoice, setNewPregnancyChoice] = useState<'fresh_start' | 'reuse_history' | 'undecided'>('undecided')
 
-  const hardDeleteText = useMemo(() => {
-    if (!hardDeleteAt) return '未安排'
-    return new Date(hardDeleteAt).toLocaleString('zh-CN')
-  }, [hardDeleteAt])
+  const hardDeleteText = useMemo(
+    () => (hardDeleteAt ? new Date(hardDeleteAt).toLocaleString('zh-CN') : '未安排'),
+    [hardDeleteAt]
+  )
 
   const submitPatientChannel = () => {
     if (entryChoice === 'not_ready') {
       setEntryVisible(false)
       return
     }
-    const mappedOutcome = outcomeType === 'skip' ? null : outcomeType
-    triggerPatientInitiatedMemorial(entryChoice, mappedOutcome)
+    triggerPatientInitiatedMemorial(entryChoice, outcomeType === 'skip' ? null : outcomeType)
     setEntryVisible(false)
+    toast.info('已为您调整账户状态', '已按您的选择处理，可随时在设置中恢复')
+  }
+
+  const handleDemoToggle = async () => {
+    if (demoMode) {
+      const ok = await confirmDialog({
+        title: '关闭演示模式？',
+        body: '关闭后将切换到真实数据模式：断开模拟设备、清空所有演示数据（监测记录/警报/协作）。真实模式下需连接真实设备与算法服务才会有数据。',
+        confirmText: '切换到真实模式',
+        cancelText: '保持演示',
+        tone: 'danger'
+      })
+      if (!ok) return
+      setDemoMode(false)
+      applyDemoMode(false)
+      toast.info('已切换到真实数据模式', '当前不展示任何模拟数据')
+    } else {
+      setDemoMode(true)
+      applyDemoMode(true)
+      toast.success('已开启演示模式', '已接入模拟设备与算法，波形与数据即时可见')
+    }
+  }
+
+  const handleHistoryAccess = async () => {
+    const ok = await confirmDialog({
+      title: '查看历史数据',
+      body: '您将查看既往监测数据。是否继续？',
+      confirmText: '继续',
+      cancelText: '取消'
+    })
+    if (ok) {
+      requestHistoryAccess()
+      confirmHistoryAccess()
+    }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="text-sm text-slate-300">账号设置</div>
-        <div className="mt-3 text-xs text-slate-400">主要联系人：{primaryContactName}</div>
-        <div className="mt-2 text-xs text-slate-400">静默模式：{memorial.enabled ? '已开启' : '未开启'}</div>
-        <div className="mt-2 text-xs text-slate-400">当前孕程：第 {pregnancyVersion} 次 · 模式 {currentPregnancyMode}</div>
-        {patientVisibleNotice ? <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-slate-300">{patientVisibleNotice}</div> : null}
+        <div className="mt-3 grid gap-2 text-xs text-slate-400 md:grid-cols-2">
+          <div>主要联系人：{primaryContactName}</div>
+          <div>静默模式：{memorial.enabled ? '已开启' : '未开启'}</div>
+          <div>当前孕程：第 {pregnancyVersion} 次 · 模式 {currentPregnancyMode}</div>
+        </div>
+        {patientVisibleNotice ? (
+          <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-slate-300">{patientVisibleNotice}</div>
+        ) : null}
       </div>
 
+      {/* 演示模式（mock/真实 唯一切换入口） */}
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-sm text-slate-300">关于结束这段孕程</div>
+            <div className="text-sm text-slate-300">演示模式</div>
             <div className="mt-2 text-xs leading-6 text-slate-400">
-              您可以暂停提醒并保留数据，或导出后进入删除流程。您也可以暂不做选择。
+              开启：接入模拟设备与模拟算法，监测波形、宫缩、胎动、警报等全部即时可见，便于演示与联调。<br />
+              关闭：切换到真实数据模式，仅展示来自真实设备与算法服务的数据，不残留任何模拟数据。
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setEntryVisible(true)}
-            className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-200"
+            onClick={handleDemoToggle}
+            role="switch"
+            aria-checked={demoMode}
+            className={`relative h-7 w-12 flex-shrink-0 rounded-full transition ${demoMode ? 'bg-[var(--accent)]' : 'bg-[var(--bg-3)]'}`}
           >
-            关于结束这段孕程 →
+            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${demoMode ? 'left-6' : 'left-1'}`} />
           </button>
         </div>
-      </div>
-
-      <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
-        <div className="text-sm text-slate-300">异常停用引导（通道 B）</div>
-        <div className="mt-3 text-xs text-slate-400">仅在用户主动打开 App 时展示，不触发 push。</div>
-        <div className="mt-4">
-          <div className="text-xs text-slate-400">连续未使用 {inactivityDays} 天</div>
-          <input
-            type="range"
-            min={0}
-            max={45}
-            value={inactivityDays}
-            onChange={(event) => setInactivityDays(Number(event.target.value))}
-            className="mt-2 w-full"
-          />
-        </div>
-        <div className="mt-3 space-y-2 text-xs text-slate-400">
-          <div>8-14 天：中性问候 + 可跳过状态调整提示 {passivePromptVisible ? '（当前可见）' : '（当前隐藏）'}</div>
-          <div>&gt;30 天：仅发送一次中性邮件 {passiveEmailSent ? '（已触发）' : '（未触发）'}</div>
+        <div
+          className="mt-3 inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px]"
+          style={{ borderColor: demoMode ? 'rgba(201,152,70,0.3)' : 'rgba(91,140,90,0.3)', color: demoMode ? 'var(--attention)' : 'var(--safe)' }}
+        >
+          <span className="inline-flex h-1.5 w-1.5 rounded-full" style={{ backgroundColor: demoMode ? 'var(--attention)' : 'var(--safe)' }} />
+          当前：{demoMode ? '演示模式（模拟数据）' : '真实数据模式'}
         </div>
       </div>
 
+      {/* 通知与提醒 */}
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="text-sm text-slate-300">通知与提醒</div>
         {memorial.enabled ? (
           <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 px-3 py-3 text-sm text-slate-400">
-            当前已暂停主动提醒与提示音。如需查看历史数据，请从下方“查看历史数据”手动进入。
+            当前已暂停主动提醒与提示音。如需查看历史数据，请从下方手动进入。
           </div>
         ) : (
           <div className="mt-4 space-y-3 text-sm text-slate-300">
-            <label className="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 px-3 py-2">
-              <span>每日摘要推送</span>
-              <input type="checkbox" checked={dailySummary} onChange={() => setDailySummary((prev) => !prev)} />
-            </label>
-            <label className="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 px-3 py-2">
-              <span>体位提醒</span>
-              <input type="checkbox" checked={postureReminder} onChange={() => setPostureReminder((prev) => !prev)} />
-            </label>
-            <label className="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 px-3 py-2">
-              <span>夜间低刺激显示</span>
-              <input type="checkbox" checked={nightMode} onChange={() => setNightMode((prev) => !prev)} />
-            </label>
+            {[
+              { key: 'dailySummary' as const, label: '每日摘要推送' },
+              { key: 'postureReminder' as const, label: '体位提醒' },
+              { key: 'nightLowStimulus' as const, label: '夜间低刺激显示' }
+            ].map((item) => (
+              <label key={item.key} className="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-2)]/70 px-3 py-2">
+                <span>{item.label}</span>
+                <input type="checkbox" checked={notifications[item.key]} onChange={() => setNotifications({ [item.key]: !notifications[item.key] })} />
+              </label>
+            ))}
           </div>
         )}
       </div>
@@ -145,20 +174,13 @@ export const PatientSettings = () => {
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-sm text-slate-300">历史数据访问</div>
           <div className="mt-2 text-xs text-slate-400">默认隐藏历史数据入口。仅在您主动确认后，相关页面才显示历史记录。</div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={requestHistoryAccess}
-              className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-200"
-            >
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button type="button" onClick={handleHistoryAccess} className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-200 transition hover:bg-[var(--bg-2)]">
               查看历史数据
             </button>
-            <div className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-400">
+            <span className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-400">
               状态：{historyAccessConfirmed ? '已解锁本次访问' : '未解锁'}
-            </div>
-            <button type="button" className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-400">
-              我需要这些数据（导出二级入口）
-            </button>
+            </span>
           </div>
         </div>
       ) : null}
@@ -168,176 +190,78 @@ export const PatientSettings = () => {
           <div className="text-sm text-slate-300">我有了新的开始</div>
           <div className="mt-2 text-xs text-slate-400">系统不会主动检测，只有您主动选择时才开启新孕程。</div>
           <div className="mt-4 space-y-2">
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input
-                type="radio"
-                name="new-pregnancy"
-                checked={newPregnancyChoice === 'fresh_start'}
-                onChange={() => setNewPregnancyChoice('fresh_start')}
-              />
-              全新开始（患者端不显示任何既往引用）
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input
-                type="radio"
-                name="new-pregnancy"
-                checked={newPregnancyChoice === 'reuse_history'}
-                onChange={() => setNewPregnancyChoice('reuse_history')}
-              />
-              参考之前的数据（医生端仍可见完整历史）
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input
-                type="radio"
-                name="new-pregnancy"
-                checked={newPregnancyChoice === 'undecided'}
-                onChange={() => setNewPregnancyChoice('undecided')}
-              />
-              我还在考虑
-            </label>
+            {([
+              ['fresh_start', '全新开始（患者端不显示任何既往引用）'],
+              ['reuse_history', '参考之前的数据（医生端仍可见完整历史）'],
+              ['undecided', '我还在考虑']
+            ] as const).map(([value, label]) => (
+              <label key={value} className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="radio" name="new-pregnancy" checked={newPregnancyChoice === value} onChange={() => setNewPregnancyChoice(value)} />
+                {label}
+              </label>
+            ))}
           </div>
-          <button
-            type="button"
-            onClick={() => startNewPregnancy(newPregnancyChoice)}
-            className="mt-4 rounded-[var(--radius-control)] bg-[var(--accent)] px-4 py-2 text-sm text-white"
-          >
+          <button type="button" onClick={() => { startNewPregnancy(newPregnancyChoice); toast.info('已更新孕程设置') }} className="mt-4 rounded-[var(--radius-control)] bg-[var(--accent)] px-4 py-2 text-sm text-white">
             应用选择
           </button>
         </div>
       ) : null}
 
-      <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
-        <div className="text-sm text-slate-300">数据时间胶囊</div>
-        <div className="mt-2 text-xs text-slate-400">
-          当前状态：{deletionState} · 法定保留期 {legalRetentionYears} 年 · 硬删除时间：{hardDeleteText}
-        </div>
-        {deletionState === 'soft_deleted' ? (
-          <button
-            type="button"
-            onClick={recoverSoftDeletedData}
-            className="mt-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-200"
-          >
-            在 30 天内恢复账户
-          </button>
-        ) : null}
-        {deletionState === 'hard_deleted' ? (
-          <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-slate-400">
-            App 端数据已硬删除。医疗机构依法保留数据可用于法定访问。
-          </div>
-        ) : null}
-      </div>
-
-      <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
-        <div className="text-sm text-slate-300">数据接入</div>
-        <div className="mt-2 text-xs text-slate-400">用于接入真实设备、实时网关，或在需要时切换到 Mock 剧本。当前数据源：{dataSourceType}</div>
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {[
-            { type: 'ble', label: '真实设备' },
-            { type: 'websocket', label: '实时网关' },
-            { type: 'mock', label: 'Mock' }
-          ].map((item) => (
-            <button
-              key={item.type}
-              type="button"
-              onClick={() => setDataSourceType(item.type as 'mock' | 'websocket' | 'ble')}
-              className={`rounded-[var(--radius-control)] border px-3 py-2 text-xs transition ${
-                dataSourceType === item.type
-                  ? 'border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--text-primary)]'
-                  : 'border-[var(--border-subtle)] bg-[var(--bg-2)] text-slate-300 hover:border-[var(--border-default)]'
-              }`}
-            >
-              {item.label}
+      {memorial.enabled ? (
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+          <div className="text-sm text-slate-300">数据时间胶囊</div>
+          <div className="mt-2 text-xs text-slate-400">当前状态：{deletionState} · 法定保留期 {legalRetentionYears} 年 · 硬删除时间：{hardDeleteText}</div>
+          {deletionState === 'soft_deleted' ? (
+            <button type="button" onClick={recoverSoftDeletedData} className="mt-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-200">
+              在 30 天内恢复账户
             </button>
-          ))}
+          ) : null}
         </div>
-        {dataSourceType === 'websocket' ? (
-          <div className="mt-3 space-y-2">
-            <input
-              value={sourceConfig.websocket.url}
-              onChange={(event) => patchSourceConfig('websocket', { url: event.target.value })}
-              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
-              placeholder="实时网关地址"
-            />
-            <input
-              value={sourceConfig.websocket.authToken}
-              onChange={(event) => patchSourceConfig('websocket', { authToken: event.target.value })}
-              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
-              placeholder="鉴权 token（可选）"
-            />
-          </div>
-        ) : null}
-        {dataSourceType === 'ble' ? (
-          <div className="mt-3 space-y-2">
-            <input
-              value={sourceConfig.ble.deviceId}
-              onChange={(event) => patchSourceConfig('ble', { deviceId: event.target.value })}
-              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
-              placeholder="设备 ID"
-            />
-            <input
-              value={sourceConfig.ble.serviceUuid}
-              onChange={(event) => patchSourceConfig('ble', { serviceUuid: event.target.value })}
-              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
-              placeholder="服务 UUID"
-            />
-            <input
-              value={sourceConfig.ble.characteristicUuid}
-              onChange={(event) => patchSourceConfig('ble', { characteristicUuid: event.target.value })}
-              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
-              placeholder="特征 UUID"
-            />
-          </div>
-        ) : null}
-        {dataSourceType === 'mock' ? (
-          <div className="mt-3 space-y-2">
-            <select
-              value={sourceConfig.mock.scenario}
-              onChange={(event) => patchSourceConfig('mock', { scenario: event.target.value })}
-              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
-            >
-              {mockScenarios.map((scenario) => (
-                <option key={scenario.code} value={scenario.code}>
-                  {scenario.label}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              min={200}
-              step={100}
-              value={sourceConfig.mock.intervalMs}
-              onChange={(event) => patchSourceConfig('mock', { intervalMs: Math.max(200, Number(event.target.value) || 1000) })}
-              className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)]"
-              placeholder="数据间隔（ms）"
-            />
-          </div>
-        ) : null}
-      </div>
+      ) : null}
 
+      {memorial.enabled ? (
+        <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+          <div className="text-sm text-slate-300">异常停用引导（通道 B）</div>
+          <div className="mt-3 text-xs text-slate-400">连续未使用 {inactivityDays} 天 · 仅在主动打开 App 时展示，不触发推送。</div>
+          <input type="range" min={0} max={45} value={inactivityDays} onChange={(e) => setInactivityDays(Number(e.target.value))} className="mt-2 w-full" />
+          <div className="mt-2 text-xs text-slate-500">
+            8-14 天中性问候 {passivePromptVisible ? '（可见）' : '（隐藏）'} · &gt;30 天一次性中性邮件 {passiveEmailSent ? '（已触发）' : '（未触发）'}
+          </div>
+        </div>
+      ) : null}
+
+      {/* 联系我们 */}
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="text-sm text-slate-300">需要帮助？联系我们</div>
-        <div className="mt-3 space-y-2 text-xs text-slate-400">
+        <div className="mt-3 space-y-1 text-xs text-slate-400">
           <div>电话：400-XXX-XXXX（9:00-21:00）</div>
           <div>邮箱：support@zhiwei.health</div>
           <div>您不需要解释具体情况，只需告诉我们希望我们做什么。</div>
         </div>
-        <button
-          type="button"
-          onClick={requestSupportHelp}
-          className="mt-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-200"
-        >
-          记录客服求助通道（E）
+        <button type="button" onClick={() => { requestSupportHelp(); toast.info('已发起人工求助', '工作人员会尽快与您联系') }} className="mt-3 rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-200">
+          联系人工客服
         </button>
+      </div>
+
+      {/* 关于结束这段孕程（记忆模式入口，置于设置底部） */}
+      <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm text-slate-300">关于结束这段孕程</div>
+            <div className="mt-2 text-xs leading-6 text-slate-400">您可以暂停一切提醒并保留数据，或导出后进入删除流程。您也可以暂不做选择。此操作可随时撤回。</div>
+          </div>
+          <button type="button" onClick={() => setEntryVisible(true)} className="flex-shrink-0 rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-300 transition hover:border-[var(--border-default)]">
+            进入 →
+          </button>
+        </div>
       </div>
 
       {triggerLog.length > 0 ? (
         <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
           <div className="text-sm text-slate-300">通道触发日志（A-E）</div>
-          <div className="mt-3 space-y-2 text-xs text-slate-400">
+          <div className="mt-3 space-y-1.5 text-xs text-slate-400">
             {triggerLog.slice(0, 8).map((item) => (
-              <div key={item.id}>
-                {new Date(item.timestamp).toLocaleString('zh-CN')} · 通道 {item.channel} · {item.detail}
-              </div>
+              <div key={item.id}>{new Date(item.timestamp).toLocaleString('zh-CN')} · 通道 {item.channel} · {item.detail}</div>
             ))}
           </div>
         </div>
@@ -345,73 +269,50 @@ export const PatientSettings = () => {
 
       <MemorialModeBanner defaultExpandedWhenEnabled />
 
-      <EmergencyOverlay
-        visible={entryVisible}
-        title="关于结束这段孕程"
-        description="您可以暂停一切提醒并保留数据，或导出数据后进入 30 天恢复窗口。您也可以暂不做选择。"
-        confirmText="应用当前选择"
-        cancelText="取消"
-        onDismiss={submitPatientChannel}
-        onCancel={() => setEntryVisible(false)}
-      />
+      {/* 结束孕程：单一清晰模态（可点击，不再卡死） */}
       {entryVisible ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
-          <div className="pointer-events-auto mt-24 w-full max-w-md rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4 shadow-[var(--shadow-card)]">
-            <div className="text-xs text-slate-400">请选择操作</div>
-            <div className="mt-2 space-y-2 text-sm text-slate-300">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="entry-choice"
-                  checked={entryChoice === 'pause_keep_data'}
-                  onChange={() => setEntryChoice('pause_keep_data')}
-                />
-                暂停一切提醒，保留数据
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="entry-choice"
-                  checked={entryChoice === 'export_and_delete'}
-                  onChange={() => setEntryChoice('export_and_delete')}
-                />
-                导出数据后注销
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="entry-choice"
-                  checked={entryChoice === 'not_ready'}
-                  onChange={() => setEntryChoice('not_ready')}
-                />
-                我还没准备好做选择
-              </label>
-            </div>
-            <div className="mt-3 text-xs text-slate-400">您愿意告诉我们发生了什么吗？（完全自愿，可跳过）</div>
-            <select
-              value={outcomeType}
-              onChange={(event) => setOutcomeType(event.target.value as AdverseOutcomeType | 'skip')}
-              className="mt-2 w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]"
-            >
-              {outcomeOptions.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
+        <div className="overlay-in fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm" onClick={() => setEntryVisible(false)}>
+          <div className="modal-in w-full max-w-lg rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-6 shadow-[var(--shadow-card)]" onClick={(e) => e.stopPropagation()}>
+            <div className="text-lg font-semibold text-[var(--text-primary)]">关于结束这段孕程</div>
+            <p className="mt-2 text-xs leading-6 text-slate-400">
+              无论以何种方式，当您觉得这段旅程要结束时，您可以让"知微"停下来。请选择您希望的处理方式：
+            </p>
+            <div className="mt-4 space-y-2">
+              {([
+                ['pause_keep_data', '暂停一切提醒，保留数据', '停止所有通知、关闭警报系统、隐藏孕周显示；数据加密保存，可随时回来查看。'],
+                ['export_and_delete', '导出数据后注销', '将全部数据打包导出，然后进入 30 天恢复窗口后彻底删除。'],
+                ['not_ready', '我还没准备好做选择', '返回，无事发生。']
+              ] as const).map(([value, label, desc]) => (
+                <label key={value} className={`flex cursor-pointer gap-3 rounded-xl border px-3 py-2.5 transition ${entryChoice === value ? 'border-[var(--accent)]/50 bg-[var(--accent-dim)]' : 'border-[var(--border-subtle)] bg-[var(--bg-2)]/60 hover:border-[var(--border-default)]'}`}>
+                  <input type="radio" name="entry-choice" className="mt-1" checked={entryChoice === value} onChange={() => setEntryChoice(value)} />
+                  <span>
+                    <span className="block text-sm text-[var(--text-primary)]">{label}</span>
+                    <span className="mt-0.5 block text-xs text-slate-400">{desc}</span>
+                  </span>
+                </label>
               ))}
-            </select>
+            </div>
+            {entryChoice !== 'not_ready' ? (
+              <div className="mt-4">
+                <div className="text-xs text-slate-400">您愿意告诉我们发生了什么吗？（完全自愿，可跳过）</div>
+                <select value={outcomeType} onChange={(e) => setOutcomeType(e.target.value as AdverseOutcomeType | 'skip')} className="mt-2 w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-[var(--text-primary)]">
+                  {outcomeOptions.map((item) => (
+                    <option key={item.value} value={item.value}>{item.label}</option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            <div className="mt-6 flex gap-3">
+              <button type="button" onClick={() => setEntryVisible(false)} className="min-h-[44px] flex-1 rounded-[var(--radius-control)] border border-[var(--border-subtle)] text-sm text-slate-200 transition hover:bg-[var(--bg-2)]">
+                取消
+              </button>
+              <button type="button" onClick={submitPatientChannel} className="min-h-[44px] flex-1 rounded-[var(--radius-control)] bg-[var(--accent)] text-sm font-semibold text-white transition hover:brightness-110">
+                {entryChoice === 'not_ready' ? '返回' : '应用当前选择'}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
-
-      <EmergencyOverlay
-        visible={pendingHistoryConfirm}
-        title="查看历史数据"
-        description="您将查看既往监测数据。是否继续？"
-        confirmText="继续"
-        cancelText="取消"
-        onDismiss={confirmHistoryAccess}
-        onCancel={cancelHistoryAccess}
-      />
     </div>
   )
 }
