@@ -37,6 +37,8 @@ interface RealtimeStore {
   sourceConfig: RealtimeSourceConfig
   setDataSourceType: (t: DataSourceType) => void
   setRiskEngineMode: (m: RiskEngineMode) => void
+  /** 接入真实算法服务：写入地址、重建远程引擎并重连，使在线流立即走真实模型 */
+  connectRemoteAlgorithm: (baseUrl: string, token: string) => Promise<void>
   patchSourceConfig: <T extends DataSourceType | 'algorithm'>(type: T, patch: Partial<RealtimeSourceConfig[T]>) => void
   scan: () => Promise<void>
   connect: (deviceId?: string) => Promise<void>
@@ -149,6 +151,17 @@ export const useRealtimeStore = create<RealtimeStore>((set, get) => {
       if (get().riskEngineMode === riskEngineMode) return
       set(() => ({ riskEngineMode }))
       ensureEngine(riskEngineMode)
+    },
+    connectRemoteAlgorithm: async (baseUrl, token) => {
+      set((state) => ({ sourceConfig: { ...state.sourceConfig, algorithm: { baseUrl: baseUrl.trim(), token } } }))
+      // 强制重建远程引擎以应用新地址
+      activeEngine?.dispose()
+      activeEngine = null
+      engineMode = null
+      set(() => ({ riskEngineMode: 'remote' }))
+      const engine = ensureEngine('remote')
+      set(() => ({ riskEngineStatus: engine.status, riskUnavailable: engine.status !== 'ready' }))
+      await get().reconnect()
     },
     patchSourceConfig: (type, patch) => {
       set((state) => ({

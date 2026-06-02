@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { mockScenarios } from '../../data/mockScenarios'
 import { useMemorialWorkflowStore, useRealtimeStore } from '../../store'
+import { toast } from '../../store/toast'
 
 export const DoctorSettings = () => {
   const doctorVisibleNotice = useMemorialWorkflowStore((state) => state.doctorVisibleNotice)
@@ -10,14 +11,88 @@ export const DoctorSettings = () => {
   const setDataSourceType = useRealtimeStore((state) => state.setDataSourceType)
   const sourceConfig = useRealtimeStore((state) => state.sourceConfig)
   const patchSourceConfig = useRealtimeStore((state) => state.patchSourceConfig)
+  const riskEngineMode = useRealtimeStore((state) => state.riskEngineMode)
+  const riskEngineStatus = useRealtimeStore((state) => state.riskEngineStatus)
+  const setRiskEngineMode = useRealtimeStore((state) => state.setRiskEngineMode)
+  const connectRemoteAlgorithm = useRealtimeStore((state) => state.connectRemoteAlgorithm)
+  const reconnect = useRealtimeStore((state) => state.reconnect)
   const [threshold, setThreshold] = useState(65)
   const [dailyDigest, setDailyDigest] = useState(true)
+  const [algoUrl, setAlgoUrl] = useState(() => sourceConfig.algorithm.baseUrl || 'http://127.0.0.1:8000')
+  const [algoToken, setAlgoToken] = useState(() => sourceConfig.algorithm.token)
+  const [healthMsg, setHealthMsg] = useState<string | null>(null)
+  const [connecting, setConnecting] = useState(false)
+
+  const checkHealth = async () => {
+    setHealthMsg('检测中…')
+    try {
+      const res = await fetch(`${algoUrl.replace(/\/$/, '')}/health`)
+      const data = (await res.json()) as { status?: string; modelVersion?: string }
+      setHealthMsg(`服务状态：${data.status ?? '未知'} · 模型 ${data.modelVersion ?? '-'}`)
+    } catch {
+      setHealthMsg('无法连接，请确认算法服务已启动（uvicorn serve:app）')
+    }
+  }
+
+  const connectAlgo = async () => {
+    setConnecting(true)
+    await connectRemoteAlgorithm(algoUrl, algoToken)
+    setConnecting(false)
+    const status = useRealtimeStore.getState().riskEngineStatus
+    if (status === 'ready') toast.success('已接入真实算法服务', '在线风险评估改由模型输出')
+    else toast.attention('已切换到真实算法', '等待算法服务响应；可先“检测连通性”确认服务在线')
+  }
 
   return (
     <div className="space-y-4">
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="text-sm text-slate-300">医生端设置</div>
         <p className="mt-3 text-xs text-slate-400">通知阈值、模型版本与团队信息在此配置。</p>
+      </div>
+
+      {/* 真实算法服务对接（对接 algo/serve.py） */}
+      <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-slate-300">算法服务对接</div>
+          <span className={`rounded-full border px-2 py-0.5 text-[11px] ${
+            riskEngineMode === 'remote' && riskEngineStatus === 'ready'
+              ? 'border-emerald-400/30 text-emerald-300'
+              : riskEngineMode === 'remote'
+                ? 'border-sky-400/30 text-sky-300'
+                : 'border-slate-500/30 text-slate-400'
+          }`}>
+            {riskEngineMode === 'remote' ? `远程算法 · ${riskEngineStatus === 'ready' ? '就绪' : '未就绪'}` : '模拟算法'}
+          </span>
+        </div>
+        <div className="mt-2 text-xs leading-6 text-slate-400">
+          接入算法团队的推理服务（仓库 <span className="text-slate-300">algo/serve.py</span>，默认 http://127.0.0.1:8000）。
+          接入后在线风险评估改由真实模型给出；未启动服务时风险位显示“等待算法服务接入”。
+        </div>
+        <div className="mt-3 space-y-2">
+          <input
+            value={algoUrl}
+            onChange={(e) => setAlgoUrl(e.target.value)}
+            placeholder="算法服务地址，如 http://127.0.0.1:8000"
+            className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+          />
+          <input
+            value={algoToken}
+            onChange={(e) => setAlgoToken(e.target.value)}
+            placeholder="鉴权 token（可选）"
+            className="w-full rounded-[var(--radius-control)] border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+          />
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={checkHealth} className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-200 transition hover:bg-[var(--bg-2)]">检测连通性</button>
+            <button type="button" disabled={connecting} onClick={() => void connectAlgo()} className="rounded-[var(--radius-control)] bg-[var(--accent)] px-3 py-2 text-xs text-white transition hover:brightness-110 disabled:opacity-50">{connecting ? '接入中…' : '接入真实算法'}</button>
+            {riskEngineMode === 'remote' ? (
+              <button type="button" onClick={() => { setRiskEngineMode('mock'); void reconnect(); toast.info('已切回模拟算法') }} className="rounded-[var(--radius-control)] border border-[var(--border-subtle)] px-3 py-2 text-xs text-slate-300 transition hover:bg-[var(--bg-2)]">用模拟算法</button>
+            ) : null}
+          </div>
+          {healthMsg ? <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-2)] px-3 py-2 text-xs text-slate-400">{healthMsg}</div> : null}
+          <div className="text-[11px] leading-5 text-slate-500">
+            提示：可保持「数据源 = Mock」让波形持续流动，同时「算法 = 真实」用模型评估这些窗口，便于无硬件联调。
+          </div>
+        </div>
       </div>
       <div className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)] p-4">
         <div className="text-sm text-slate-300">风险阈值</div>
