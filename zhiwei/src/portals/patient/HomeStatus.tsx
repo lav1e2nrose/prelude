@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { FalsePositiveFeedback } from '../../components/shared/FalsePositiveFeedback'
 import { MemorialModeBanner } from '../../components/shared/MemorialModeBanner'
 import { StatusOrb } from '../../components/shared/StatusOrb'
+import { RiskGauge } from '../../components/charts/RiskGauge'
 import { useAlertsStore, useAppStore, useMemorialStore, useMemorialWorkflowStore, usePatientJournalStore, useRealtimeStore } from '../../store'
 import { computeGestationalAge, formatDaysUntilDue, formatGestationalAge } from '../../utils/gestational'
 import { toast } from '../../store/toast'
@@ -55,10 +56,12 @@ export const HomeStatus = () => {
     })
     .join(' ')
 
-  const risk24h = latestFrame?.features.pretermProbability24h ?? 2.1
-  const risk7d = latestFrame?.features.pretermProbability7d ?? 5.8
-  const prevRisk24h = frameBuffer.at(-2)?.features.pretermProbability24h ?? risk24h
-  const prevRisk7d = frameBuffer.at(-2)?.features.pretermProbability7d ?? risk7d
+  // 概率为 0-1，展示为百分比
+  const risk24h = latestFrame ? latestFrame.features.pretermProbability24h * 100 : 0
+  const risk7d = latestFrame ? latestFrame.features.pretermProbability7d * 100 : 0
+  const prevFrame = frameBuffer.at(-2)
+  const prevRisk24h = prevFrame ? prevFrame.features.pretermProbability24h * 100 : risk24h
+  const prevRisk7d = prevFrame ? prevFrame.features.pretermProbability7d * 100 : risk7d
 
   const orbLevel = !latestFrame || riskUnavailable ? 'unknown' : latestFrame.riskLevel
   const statusCopy =
@@ -71,6 +74,16 @@ export const HomeStatus = () => {
           : orbLevel === 'alert'
             ? '风险升高'
             : '紧急'
+
+  const gaugeScore = orbLevel === 'unknown' ? null : Math.round(risk7d)
+  const gaugeSub =
+    orbLevel === 'unknown'
+      ? '连接设备并开始监测后，这里显示 7 日早产风险'
+      : orbLevel === 'safe'
+        ? '7 日早产风险 · 当前处于低风险区间'
+        : orbLevel === 'attention'
+          ? '7 日早产风险 · 建议持续观察'
+          : '7 日早产风险 · 建议联系医生'
 
   if (memorialEnabled) {
     return (
@@ -122,26 +135,25 @@ export const HomeStatus = () => {
   return (
     <div className="space-y-6">
       <section className="rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-1)]/95 p-5 shadow-[var(--shadow-card)]">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
           <div>
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-400">首页状态</div>
+            <div className="text-xs uppercase tracking-[0.3em] text-slate-400">实时风险状态</div>
             <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">您好，{displayName}</div>
             <p className="mt-2 text-sm text-slate-300">
               {age ? `${formatGestationalAge(age)} · ${formatDaysUntilDue(age)}` : '档案加载中…'}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
-              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1">
-                待处理预警 {pendingAlerts} 条
-              </span>
-              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1">
-                今日宫缩 {todayContractions.length} 次
-              </span>
-              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2 py-1">
-                今日胎动 {todayFetalMovements.length} 次
-              </span>
+            <div className="mt-4">
+              <StatusOrb level={orbLevel} label={statusCopy} />
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2.5 py-1">待处理预警 {pendingAlerts} 条</span>
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2.5 py-1">今日宫缩 {todayContractions.length} 次</span>
+              <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-2)] px-2.5 py-1">今日胎动 {todayFetalMovements.length} 次</span>
             </div>
           </div>
-          <StatusOrb level={orbLevel} label={`实时风险状态 · ${statusCopy}`} />
+          <div className="flex justify-center md:justify-end">
+            <RiskGauge level={orbLevel} score={gaugeScore} statusText={statusCopy} subText={gaugeSub} size={236} />
+          </div>
         </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-[1.6fr_1fr]">
